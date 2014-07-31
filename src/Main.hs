@@ -6,7 +6,7 @@ import Handler.Edit
 import Handler.Static
 import Network.HTTP.Types (StdMethod(..))
 import Routes
-import Web.Seacat
+import Web.Seacat (Handler, seacat, defaultSettings)
 import Web.Seacat.RequestHandler (textResponse)
 
 -- |Start up the web server with default settings.
@@ -25,15 +25,15 @@ error500 = textResponse . pack
 
 -- |Route a request to its handler.
 route :: StdMethod -> Sitemap -> Handler Sitemap
-route GET  (View wp Nothing)  = page wp
-route GET  (View wp (Just r)) = pageAtRevision wp r
-route GET  (Edit wp)          = edit wp
-route GET  (History wp)       = history wp
-route GET  (Diff wp r1 r2)    = diff wp r1 r2
-route GET  (Attachment wp fn Nothing)  = attachment wp fn
-route GET  (Attachment wp fn (Just r)) = attachmentAtRevision wp fn r
-route GET  (Attachments wp Nothing)    = attachments wp
-route GET  (Attachments wp (Just r))   = attachmentsAtRevision wp r
-route GET  (Static fn)        = static fn
-route POST (Edit wp)          = commit wp
-route _    _                  = error404 "No such page"
+route GET  (View    wp Nothing)     = page wp
+route GET  (View    wp (Just r))    = pageAtRevision wp r
+route GET  (Edit    wp)             = edit wp
+route GET  (History wp)             = history wp
+route GET  (Diff    wp r1 r2)       = diff wp r1 r2
+route GET  (File    wp fn Nothing)  = file wp fn
+route GET  (File    wp fn (Just r)) = fileAtRevision wp fn r
+route GET  (Files   wp Nothing)     = files wp
+route GET  (Files   wp (Just r))    = filesAtRevision wp r
+route GET  (Static  fn)             = static fn
+route POST (Edit    wp)             = commit wp
+route _    _                        = error404 "No such page"
