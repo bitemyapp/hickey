@@ -13,8 +13,7 @@ module Types
     , fileTextName
     , isFileName
     , toFileName
-    )
-    where
+    ) where
 
 import Data.Text (Text)
 
