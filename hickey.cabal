@@ -59,6 +59,7 @@ executable hickey
                      , Handler.View
                      , Routes
                      , Store
+                     , Templates
                      , Types
   
   -- LANGUAGE extensions used by modules in this package.
@@ -66,13 +67,17 @@ executable hickey
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.7 && <4.8
+                     , blaze-html >=0.7 && <0.8
+                     , blaze-markup >=0.6 && <0.7
                      , bytestring >=0.10 && <0.11
+                     , data-default >=0.5 && <0.6
                      , filestore >=0.6 && <0.7
                      , http-types >=0.8 && <0.9
+                     , pandoc >=1.10 && <1.13
                      , seacat >= 1.0 && <1.1
                      , text >=1.1 && <1.2
                      , transformers >= 0.3 && <0.5
-                     , web-routes >= 0.27 && <0.28
+                     , web-routes >= 0.25 && <0.28
   
   -- Directories containing source files.
   hs-source-dirs:      src
