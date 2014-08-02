@@ -60,10 +60,9 @@ diff wp r1 r2 = do
 
 -- |Render a new page, inviting users to create it.
 renderNewPage :: WikiPage -> MkUrl Sitemap -> Html
-renderNewPage wp = renderHtmlPage (pageTextName wp) html
-    where html mkurl = H.div $ do
-                         _ <- "This page does not exist "
-                         link' mkurl "Create New Page" "why not create it?" $ Edit wp
+renderNewPage wp = renderHtmlPage (pageTextName wp) $ \mkurl -> do
+                     _ <- "This page does not exist "
+                     link' mkurl "Create New Page" "why not create it?" $ Edit wp
 
 -- |Display a list of commits.
 renderHist :: WikiPage -> [Commit] -> Handler Sitemap
