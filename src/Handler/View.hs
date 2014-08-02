@@ -8,7 +8,6 @@ module Handler.View
     ) where
 
 import Data.Maybe (fromJust)
-import Data.Monoid ((<>))
 import Handler.Error
 import Routes
 import Store
@@ -58,10 +57,6 @@ diff wp r1 r2 = do
     _                -> htmlUrlResponse $ renderBadDiff wp r1 r2
 
 -----
-
--- |Get the filename of a wiki page.
-pageFileName :: WikiPage -> FileName
-pageFileName = fromJust . toFileName . (<> ".md") . pageTextName
 
 -- |Render a new page, inviting users to create it.
 renderNewPage :: WikiPage -> MkUrl Sitemap -> Html

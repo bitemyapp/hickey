@@ -3,6 +3,7 @@
 module Types
     ( WikiPage
     , pageTextName
+    , pageFileName
     , isPageName
     , toWikiPage
 
@@ -18,6 +19,8 @@ module Types
     ) where
 
 import Data.Char (isAlphaNum, isHexDigit)
+import Data.Maybe (fromJust)
+import Data.Monoid ((<>))
 import Data.Text (Text, splitOn)
 
 import qualified Data.Text as T
@@ -33,6 +36,10 @@ newtype Revision = Revision { revisionTextId :: Text }
 -- |A filename is an alphanumeric string with a single '.'.
 newtype FileName = FileName { fileTextName :: Text }
     deriving (Eq, Show)
+
+-- |Get the filename of a wiki page.
+pageFileName :: WikiPage -> FileName
+pageFileName = fromJust . toFileName . (<> ".md") . pageTextName
 
 -- |Check if some text is a valid page name
 isPageName :: Text -> Bool
