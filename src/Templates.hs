@@ -90,7 +90,7 @@ applyHeaderAndFooter wp title html mkurl = docTypeHtml $ do
         li $ T.link mkurl "FrontPage" $ View (fromJust $ toWikiPage "FrontPage") Nothing
         pageNav
 
-    H.div ! class_ "page" $ html
+    article html
 
   where pageNav = when (isJust wp) $ do
                     let wikiPage = fromJust wp
