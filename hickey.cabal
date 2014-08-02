@@ -60,6 +60,7 @@ executable hickey
                      , Routes
                      , Store
                      , Templates
+                     , Templates.Utils
                      , Types
   
   -- LANGUAGE extensions used by modules in this package.

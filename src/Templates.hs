@@ -14,15 +14,14 @@ import Data.Text (Text, unpack)
 import Routes
 import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
-import Text.Blaze.Internal (textValue)
-import Text.Pandoc.Options (ReaderOptions(..), WriterOptions(..))
+import Text.Pandoc.Options (WriterOptions(..))
 import Text.Pandoc.Readers.Markdown (readMarkdown)
 import Text.Pandoc.Writers.HTML (writeHtml)
 import Types
 import Web.Seacat
 
+import qualified Templates.Utils as T
 import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
 
 -- |Render a wiki page (written in Markdown) to HTML.
 renderWikiPage :: WikiPage
@@ -88,16 +87,14 @@ applyHeaderAndFooter wp title html mkurl = docTypeHtml $ do
     header $ do
       h1 $ toHtml title
       nav $ do
-        li $ link "FrontPage" $ View (fromJust $ toWikiPage "FrontPage") Nothing
+        li $ T.link mkurl "FrontPage" $ View (fromJust $ toWikiPage "FrontPage") Nothing
         pageNav
 
     H.div ! class_ "page" $ html
 
-  where link title target = a ! href (textValue $ mkurl target []) ! A.title (textValue title) $ toHtml title
-
-        pageNav = when (isJust wp) $ do
+  where pageNav = when (isJust wp) $ do
                     let wikiPage = fromJust wp
 
-                    li $ link "Edit"    $ Edit    wikiPage
-                    li $ link "History" $ History wikiPage
-                    li $ link "Files"   $ Files   wikiPage Nothing
+                    li $ T.link mkurl "Edit"    $ Edit    wikiPage
+                    li $ T.link mkurl "History" $ History wikiPage
+                    li $ T.link mkurl "Files"   $ Files   wikiPage Nothing
