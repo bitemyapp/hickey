@@ -1,7 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Handler.Edit
     ( edit
-    , commit) where
+    , commit
+    , preview) where
 
+import Data.Maybe (fromMaybe)
+import Templates
 import Types
 import Routes
 import Web.Seacat
@@ -14,3 +19,7 @@ edit wp = undefined
 -- process.
 commit :: WikiPage -> Handler Sitemap
 commit wp = undefined
+
+-- |Render a preview of some posted markup.
+preview :: Handler Sitemap
+preview = param "markup" >>= htmlResponse . renderBareMarkup . fromMaybe ""

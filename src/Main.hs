@@ -36,4 +36,5 @@ route GET  (Files   wp Nothing)     = files wp
 route GET  (Files   wp (Just r))    = filesAtRevision wp r
 route GET  (Static  fn)             = static fn
 route POST (Edit    wp)             = commit wp
+route POST  Preview                 = preview
 route _    _                        = error404 "No such page"

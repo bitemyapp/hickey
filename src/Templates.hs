@@ -4,7 +4,8 @@ module Templates
     ( renderWikiPage
     , renderWikiPageAt
     , renderNoticePage
-    , renderHtmlPage) where
+    , renderHtmlPage
+    , renderBareMarkup) where
 
 import Control.Monad (when)
 import Data.Default (def)
@@ -57,6 +58,13 @@ renderHtmlPage :: Text
                -- ^Body
                -> MkUrl Sitemap -> Html
 renderHtmlPage title body mkurl = applyHeaderAndFooter Nothing title (body mkurl) mkurl
+
+-- |Render just some markup, and don't wrap it in the header and
+-- footer (eg, for a preview pane)
+renderBareMarkup :: Text
+                 -- ^The markup
+                 -> Html
+renderBareMarkup = renderMarkdown
 
 -----
 
