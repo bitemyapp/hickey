@@ -9,7 +9,6 @@ module Handler.View
 
 import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
---import Data.Text ()
 import Routes
 import Store
 import Templates.Utils
