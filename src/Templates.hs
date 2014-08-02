@@ -90,7 +90,7 @@ applyHeaderAndFooter :: Maybe WikiPage
 applyHeaderAndFooter wp title html mkurl = docTypeHtml $ do
   H.head $
    H.title $ toHtml title
-    -- Load some CSS stylesheets here
+    -- Load some CSS stylesheets and magical javascript here
   body $ do
     header $ do
       h1 $ toHtml title
