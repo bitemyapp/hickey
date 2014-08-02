@@ -9,11 +9,12 @@ module Handler.View
 
 import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
+import Handler.Error
 import Routes
 import Store
+import Templates
 import Templates.Utils
 import Text.Blaze.Html5
-import Templates
 import Types
 import Web.Seacat (Handler, MkUrl)
 import Web.Seacat.RequestHandler (htmlUrlResponse)
@@ -76,15 +77,3 @@ renderHist wp hist = undefined
 -- |Display a list of changes.
 renderDiff :: WikiPage -> Revision -> Revision -> Differences -> Handler Sitemap
 renderDiff wp r1 r2 diff = undefined
-
--- |Render an error page, saying that a revision is bad.
-renderBadRevision :: WikiPage -> Revision -> MkUrl Sitemap -> Html
-renderBadRevision wp r = renderNoticePage "Revision too old" $ "The page" <> pageTextName wp <> " did not exist at revision " <> revisionTextId r <> "."
-
--- |Render an error page, saying that a revision range is bad.
-renderBadDiff :: WikiPage -> Revision -> Revision -> MkUrl Sitemap -> Html
-renderBadDiff wp r1 r2 = renderNoticePage "Bad commit range" $ "The diff for " <> pageTextName wp <> " could not be generated for the range " <> revisionTextId r1 <> "–" <> revisionTextId r2 <> "."
-
--- |Render an error page, saying that a page name is bad.
-renderBadPage :: WikiPage -> MkUrl Sitemap -> Html
-renderBadPage wp = renderNoticePage "No such page" $ "The page " <> pageTextName wp <> " does not exist."
