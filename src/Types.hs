@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Types
     ( WikiPage
     , pageTextName
@@ -15,7 +17,10 @@ module Types
     , toFileName
     ) where
 
-import Data.Text (Text)
+import Data.Char (isAlphaNum, isHexDigit)
+import Data.Text (Text, splitOn)
+
+import qualified Data.Text as T
 
 -- |A wiki page name is some sequence of alphanumeric characters.
 newtype WikiPage = WikiPage { pageTextName :: Text }
@@ -25,13 +30,13 @@ newtype WikiPage = WikiPage { pageTextName :: Text }
 newtype Revision = Revision { revisionTextId :: Text }
     deriving (Eq, Show)
 
--- |A filename is a string with no slashes and a single '.'.
+-- |A filename is an alphanumeric string with a single '.'.
 newtype FileName = FileName { fileTextName :: Text }
     deriving (Eq, Show)
 
 -- |Check if some text is a valid page name
 isPageName :: Text -> Bool
-isPageName = undefined
+isPageName = T.all isAlphaNum
 
 -- |Convert some text to a page, if valid.
 toWikiPage :: Text -> Maybe WikiPage
@@ -40,7 +45,7 @@ toWikiPage p | isPageName p = Just $ WikiPage p
 
 -- |Check if some text is a valid revision id
 isRevisionId :: Text -> Bool
-isRevisionId = undefined
+isRevisionId = T.all isHexDigit
 
 -- |Convert some text to a revision, if valid.
 toRevision :: Text -> Maybe Revision
@@ -49,7 +54,10 @@ toRevision r | isRevisionId r = Just $ Revision r
 
 -- |Check if some text is a valid filename.
 isFileName :: Text -> Bool
-isFileName = undefined
+isFileName fn = plen && palpha
+    where palpha = all (T.all isAlphaNum) parts
+          plen = length parts == 2
+          parts = splitOn "." fn
 
 -- |Convert some text to a filename, if valid.
 toFileName :: Text -> Maybe FileName
