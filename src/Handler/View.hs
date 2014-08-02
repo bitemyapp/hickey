@@ -9,22 +9,26 @@ module Handler.View
 
 import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
-import Data.Text (Text)
+--import Data.Text ()
 import Routes
 import Store
-import Text.Blaze.Html5 (Html)
+import Templates.Utils
+import Text.Blaze.Html5
 import Templates
 import Types
 import Web.Seacat (Handler, MkUrl)
 import Web.Seacat.RequestHandler (htmlUrlResponse)
 
+import qualified Text.Blaze.Html5 as H
+
 -- |Display a page as it is now.
 page :: WikiPage -> Handler Sitemap
 page wp = do
   wikiPage <- getStoredFile $ pageFileName wp
-  case wikiPage of
-    Just contents -> htmlUrlResponse $ renderWikiPage wp contents
-    _             -> renderNewPage wp
+  htmlUrlResponse $
+    case wikiPage of
+      Just contents -> renderWikiPage wp contents
+      _             -> renderNewPage wp
 
 -- |Display a page as it was at the given revision. If the revision ID
 -- is bad (doesn't exist or predates this page), an error is displayed
@@ -60,8 +64,11 @@ pageFileName :: WikiPage -> FileName
 pageFileName = fromJust . toFileName . (<> ".md") . pageTextName
 
 -- |Render a new page, inviting users to create it.
-renderNewPage :: WikiPage -> Handler Sitemap
-renderNewPage wp = undefined
+renderNewPage :: WikiPage -> MkUrl Sitemap -> Html
+renderNewPage wp = renderHtmlPage (pageTextName wp) html
+    where html mkurl = H.div $ do
+                         _ <- "This page does not exist "
+                         link' mkurl "Create New Page" "why not create it?" $ Edit wp
 
 -- |Display a list of commits.
 renderHist :: WikiPage -> [Commit] -> Handler Sitemap
