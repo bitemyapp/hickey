@@ -1,0 +1,146 @@
+/* ***** Web Fonts */
+@import url(http://fonts.googleapis.com/css?family=Droid+Serif:400,700,700italic,400italic|Bitter:700|Ubuntu+Mono:400,700italic,700,400italic);
+
+/* ***** Global */
+body {
+    color: #050C13;
+    font-family: "Droid Serif", serif;
+    font-size: 16px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: Bitter, serif;
+    font-weight: bold;
+}
+
+a:link, a:visited {
+    color: #026F8C;
+    text-decoration: none;
+}
+
+a:active, a:hover {
+    color: #E83405;
+    text-decoration: underline;
+}
+
+.container {
+    padding: 0 64px;
+}
+
+pre {
+    border: 1px solid #ccc;
+    border-left: 3px solid #ccc;
+    background-color: #fafafa;
+    padding: 0.5em;
+}
+
+code, textarea {
+    font-family: "Ubuntu Mono", monospace;
+}
+
+/* ***** Header */
+header {
+    margin: 0 0 1em 0;
+    padding: 1em;
+    border-bottom: 1px solid #000;
+}
+
+header h1, header nav, header nav ul, header nav ul li {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+}
+
+header nav {
+    margin-left: 3em;
+    position: relative;
+    top: -0.2em;
+}
+
+header nav ul li {
+    margin: 0;
+    padding: 0 1em;
+}
+
+/* ***** Asides */
+aside {
+    float: right;
+    border: 1px solid #ccc;
+    background-color: #fafafa;
+    padding: 0.5em 2em;
+}
+
+aside h1 {
+    margin-top: 0;
+    padding-top: 0;
+    text-align: center;
+}
+
+aside nav > ul {
+    padding-left: 0;
+}
+
+/* ***** Forms */
+form, fieldset, fieldset ol {
+    margin: 0;
+    padding: 0;
+}
+
+fieldset {
+    border: none;
+}
+
+fieldset ol {
+    list-style-type: none;
+}
+
+form li {
+    clear: both;
+    margin-bottom: 0.6em;
+}
+
+form label {
+    width: 8em;
+    font-weight: bold;
+    float: left;
+}
+
+input, textarea {
+    background-color: #fafafa;
+    padding: 0.2em;
+}
+
+textarea {
+    width: 100%;
+    height: 32em;
+}
+
+input[name="who"] {
+    width: 8em;
+}
+
+input[name="desc"] {
+    width: 30em;
+}
+
+div.error {
+    margin-bottom: 1em;
+    padding: 0.5em 2em;
+    border: 1px solid #F8CF66;
+    border-left: 3px solid #F8CF66;
+    background-color: #FAFECC;
+    color: #6F0A10;
+}
+
+/* ***** Pandoc highlighting */
+code .kw { color: #268BD2; }
+code .dt { color: #268BD2; }
+code .dv, code .bn, code .fl { color: #D33682; }
+code .ch { color: #DC322F; }
+code .st { color: #2AA198; }
+code .co { color: #93A1A1; }
+code .ot { color: #A57800; }
+code .al { color: #CB4B16; font-weight: bold; }
+code .fu { color: #268BD2; }
+code .re { }
+code .er { color: #D30102; font-weight: bold; }
