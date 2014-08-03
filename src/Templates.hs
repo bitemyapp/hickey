@@ -116,9 +116,10 @@ applyHeaderAndFooter wp title html mkurl = docTypeHtml $ do
   body $ do
     header $ do
       h1 $ toHtml title
-      nav $ do
-        li $ T.link mkurl "FrontPage" $ View (fromJust $ toWikiPage "FrontPage") Nothing
-        pageNav
+      nav $
+        ul $ do
+          li $ T.link mkurl "FrontPage" $ View (fromJust $ toWikiPage "FrontPage") Nothing
+          pageNav
 
     article html
 
