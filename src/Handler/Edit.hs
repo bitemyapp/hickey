@@ -103,27 +103,31 @@ renderEditPage :: WikiPage -> Maybe Revision
 renderEditPage wp r msg md = renderHtmlPage "Edit" $ \mkurl -> do
   -- Start off with a nice cheerful error message.
   when (isJust msg) $
-    H.div ! class_ (textValue "error") $ toHtml (fromJust msg)
+    H.div ! class_ "error" $ toHtml (fromJust msg)
+
+  ul ! class_ "tabs" $ do
+    li $ a ! A.id "editLnk" ! href "javascript:changeToEditTab()"    ! A.style "font-weight: bold" $ T.toHtml "Edit"
+    li $ a ! A.id "previewLnk" ! href "javascript:changeToPreviewTab()" $ T.toHtml "Preview"
 
   -- Inside here lives a rendered preview, we'll have some javascript pull it in
-  H.div ! A.id (textValue "preview") $ T.empty
+  H.div ! A.id "preview" ! A.style "display:none" $ T.empty
 
   -- And here is the edit form
-  H.form ! method (textValue "post") ! action (textValue $ flip mkurl [] $ Edit wp) ! enctype (textValue "multipart/form-data") $
+  H.form ! A.id "edit" ! method "post" ! action (textValue $ flip mkurl [] $ Edit wp) ! enctype "multipart/form-data" $
     fieldset $
-      ol ! A.id (textValue "mainform") $ do
+      ol ! A.id "mainform" $ do
         li $
-          textarea ! name (textValue "markup") ! required (textValue "required") $ toHtml md
+          textarea ! name "markup" ! required "required" $ toHtml md
         li $
           T.input' "Your Handle:" "who" "text"
         li $
           T.input' "Edit Summary:" "desc" "text"
         li $
-          H.input ! type_ (textValue "submit") ! value (textValue "Save Changes")
+          H.input ! type_ "submit" ! value "Save Changes"
 
         -- We also keep track of the revision, to allow for merging.
-        li ! A.style (textValue "display: none") $
-          let revid val = H.input ! name (textValue "revid") ! type_ (textValue "text") ! value (textValue val) ! required (textValue "required")
+        li ! A.style "display: none" $
+          let revid val = H.input ! name "revid" ! type_ "text" ! value (textValue val) ! required "required"
           in case r of
                Just rev -> revid $ revisionTextId rev
                Nothing  -> revid "new"

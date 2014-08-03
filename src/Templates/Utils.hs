@@ -65,7 +65,7 @@ input' :: Text
        -> Html
 input' lbl nam typ = do
   label ! for (textValue nam) $ toHtml lbl
-  H.input ! name (textValue nam) ! type_ (textValue typ) ! required (textValue "required")
+  H.input ! name (textValue nam) ! type_ (textValue typ) ! required "required"
 
 -- |A specialised toHtml, to get around the issues caused by
 -- OverloadedStrings.

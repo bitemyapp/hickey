@@ -126,7 +126,8 @@ applyHeaderAndFooter :: Maybe WikiPage
 applyHeaderAndFooter wp title html mkurl = docTypeHtml $ do
   H.head $ do
    H.title $ toHtml title
-   H.link ! rel "stylesheet" ! type_ "text/css" ! href (textValue $ flip mkurl [] $ Static . fromJust . toFileName $ "style.css")
+   H.link ! rel "stylesheet" ! type_ "text/css" ! href (sfile "style.css")
+   script ! type_ "text/javascript" ! src (sfile "preview.js") $ T.empty
 
   body $ do
     header $ do
@@ -144,3 +145,5 @@ applyHeaderAndFooter wp title html mkurl = docTypeHtml $ do
                     li $ T.link mkurl "Edit"    $ Edit    wikiPage
                     li $ T.link mkurl "History" $ History wikiPage
                     li $ T.link mkurl "Files"   $ Files   wikiPage
+
+        sfile fn = textValue $ flip mkurl [] $ Static . fromJust . toFileName $ fn
