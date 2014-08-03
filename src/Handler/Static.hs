@@ -1,12 +1,17 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Handler.Static
     ( file
     , fileAtRevision
     , files
     , static) where
 
-import Types
+import Data.Monoid ((<>))
+import Data.Text (unpack)
 import Routes
-import Web.Seacat (Handler)
+import System.FilePath.Posix (joinPath)
+import Types
+import Web.Seacat (Handler, conf', textResponse, respondFile)
 
 -- |Display a file as it exists currently.
 file :: WikiPage -> FileName -> Handler Sitemap
@@ -22,4 +27,7 @@ files wp = undefined
 
 -- |Display a static file, if it exists.
 static :: FileName -> Handler Sitemap
-static fn = undefined
+static fn = do
+  gpath <- conf' "git" "path"
+  let fpath = joinPath [gpath, "static", unpack $ fileTextName fn]
+  respondFile (textResponse $ "Cannot find " <> fileTextName fn) fpath
