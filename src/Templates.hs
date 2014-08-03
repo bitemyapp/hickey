@@ -141,4 +141,4 @@ applyHeaderAndFooter wp title html mkurl = docTypeHtml $ do
 
                     li $ T.link mkurl "Edit"    $ Edit    wikiPage
                     li $ T.link mkurl "History" $ History wikiPage
-                    li $ T.link mkurl "Files"   $ Files   wikiPage Nothing
+                    li $ T.link mkurl "Files"   $ Files   wikiPage

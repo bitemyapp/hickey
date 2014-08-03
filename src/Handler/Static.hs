@@ -2,7 +2,6 @@ module Handler.Static
     ( file
     , fileAtRevision
     , files
-    , filesAtRevision
     , static) where
 
 import Types
@@ -20,11 +19,6 @@ fileAtRevision wp fn r = undefined
 -- |Display the list of files as it is now.
 files :: WikiPage -> Handler Sitemap
 files wp = undefined
-
--- |Display the list of files as it was at the given revision, or an
--- error page if the revision is bad.
-filesAtRevision :: WikiPage -> Revision -> Handler Sitemap
-filesAtRevision wp r = undefined
 
 -- |Display a static file, if it exists.
 static :: FileName -> Handler Sitemap

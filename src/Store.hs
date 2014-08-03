@@ -17,7 +17,6 @@ module Store
     , getStoredFile
     , getStoredFileAt
     , getStoredBinary
-    , getStoredBinaryAt
     , getHistory
     , getDiff
 
@@ -111,11 +110,6 @@ getStoredFileAt' fn r = withFileStore $ \fs -> contents fs `onStoreExc` return N
 -- lazy bytestring.
 getStoredBinary ::  FileName -> RequestProcessor Sitemap (Maybe ByteString)
 getStoredBinary fn = withFileStore undefined
-
--- |Get the contents of a specific revision of a binary file, if it
--- exists, as a lazy bytestring.
-getStoredBinaryAt ::  FileName -> Revision -> RequestProcessor Sitemap (Maybe ByteString)
-getStoredBinaryAt fn r = withFileStore undefined
 
 -- |Get the history of a file, if it exists, as a list of commits.
 getHistory ::  FileName -> RequestProcessor Sitemap (Maybe [Commit])

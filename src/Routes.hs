@@ -13,7 +13,7 @@ data Sitemap = View    WikiPage (Maybe Revision)
              | History WikiPage
              | Diff    WikiPage Revision Revision
              | File    WikiPage FileName (Maybe Revision)
-             | Files   WikiPage (Maybe Revision)
+             | Files   WikiPage
              | Static  FileName
              | Preview
              | Error404
@@ -31,8 +31,7 @@ instance PathInfo Sitemap where
 
     toPathSegments (File    wp fn Nothing)  = [pageTextName wp, "files", fileTextName fn]
     toPathSegments (File    wp fn (Just r)) = [pageTextName wp, revisionTextId r, "files", fileTextName fn]
-    toPathSegments (Files   wp Nothing)     = [pageTextName wp, "files"]
-    toPathSegments (Files   wp (Just r))    = [pageTextName wp, revisionTextId r, "files"]
+    toPathSegments (Files   wp)             = [pageTextName wp, "files"]
 
     -- "preview" is a valid page name, so stick it at /-/preview to
     -- remove conflict.
@@ -62,12 +61,8 @@ instance PathInfo Sitemap where
                                           in Error404 `fromMaybe` file
 
               parse' [p, "files"] = case toWikiPage p of
-                                      Just wikiPage -> Files wikiPage Nothing
+                                      Just wikiPage -> Files wikiPage
                                       _             -> Error404
-
-              parse' [p, r, "files"] = case toWikiPage p of
-                                         Just wikiPage -> Files wikiPage $ toRevision r
-                                         _             -> Error404
 
               parse' ["static", fn] = case toFileName fn of
                                         Just fileName -> Static fileName
