@@ -11,7 +11,7 @@ import Control.Monad (when)
 import Data.Default (def)
 import Data.Maybe (fromJust, isJust)
 import Data.Monoid ((<>))
-import Data.Text (Text, unpack)
+import Data.Text (Text, unpack, replace)
 import Routes
 import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
@@ -72,9 +72,31 @@ renderBareMarkup = renderMarkdown
 -- TODO: Autolinking of WikiWords
 -- TODO: Plugins
 renderMarkdown :: Text -> Html
-renderMarkdown = writeHtml writerOptions . readMarkdown readerOptions . unpack
+renderMarkdown = writeHtml writerOptions . readMarkdown readerOptions . unpack . replace "\r\n" "\n"
     where readerOptions = def
-          writerOptions = def { writerTableOfContents = True
+          writerOptions = def { -- In order to include a table of
+                                -- contents, the writer must be in
+                                -- "standalone" mode - but we don't
+                                -- want the default header and footer,
+                                -- just the toc.
+                                --
+                                -- We also use this opportunity to
+                                -- make semantically nicer output,
+                                -- too.
+                                writerStandalone = True
+                              , writerTemplate = unlines [ "<section id=\"toc\">"
+                                                         , "<h1>Table of Contents</h1>"
+                                                         , "$toc$"
+                                                         , "</section>"
+                                                         , "<section id=\"article\">"
+                                                         , "$body$"
+                                                         , "</section>"
+                                                         ]
+                              , writerTableOfContents = True
+                              , writerSectionDivs = True
+
+                                -- The rest of the options are fairly
+                                -- self-explanatory
                               , writerHtml5 = True
                               , writerHighlight = True
                               }
