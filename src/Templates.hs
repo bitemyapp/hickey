@@ -84,10 +84,10 @@ renderMarkdown = writeHtml writerOptions . readMarkdown readerOptions . unpack .
                                 -- make semantically nicer output,
                                 -- too.
                                 writerStandalone = True
-                              , writerTemplate = unlines [ "<section id=\"toc\">"
+                              , writerTemplate = unlines [ "<nav id=\"toc\">"
                                                          , "<h1>Table of Contents</h1>"
                                                          , "$toc$"
-                                                         , "</section>"
+                                                         , "</nav>"
                                                          , "<section id=\"article\">"
                                                          , "$body$"
                                                          , "</section>"
