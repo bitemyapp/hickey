@@ -43,7 +43,7 @@ renderWikiPageAt :: WikiPage
                  -> Text
                  -- ^The contents
                  -> MkUrl Sitemap -> Html
-renderWikiPageAt wp r = applyHeaderAndFooter (Just wp) (pageTextName wp <> " at " <> revisionTextId r) . article . renderMarkdown
+renderWikiPageAt wp r = applyHeaderAndFooter (Just wp) (pageTextName wp <> " at " <> revisionShortId r) . article . renderMarkdown
 
 -- |Render a notice (written in plain text) to HTML.
 renderNoticePage :: Text

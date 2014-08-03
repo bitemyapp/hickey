@@ -105,7 +105,7 @@ getStoredFileAt fn r = getStoredFileAt' (filePath fn) $ Just r
 -- the revision is unspecified.
 getStoredFileAt' :: FilePath -> Maybe Revision -> RequestProcessor Sitemap (Maybe Text)
 getStoredFileAt' fn r = withFileStore $ \fs -> contents fs `onStoreExc` return Nothing
-    where contents fs = Just <$> retrieve fs fn Nothing
+    where contents fs = Just <$> retrieve fs fn (unpack . revisionTextId <$> r)
 
 -- |Get the contents of the HEAD of a binary file, if it exists, as a
 -- lazy bytestring.
