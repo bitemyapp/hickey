@@ -15,9 +15,13 @@ data Sitemap = View    WikiPage (Maybe Revision)
              | File    WikiPage FileName (Maybe Revision)
              | Files   WikiPage
              | Static  FileName
-             | Preview
+             | Special SpecialPage
              | Error404
                deriving (Eq, Show)
+
+data SpecialPage = Preview
+                 | PlainDiff
+                   deriving (Eq, Show)
 
 instance PathInfo Sitemap where
     toPathSegments (View wp Nothing)  = [pageTextName wp]
@@ -33,9 +37,10 @@ instance PathInfo Sitemap where
     toPathSegments (File    wp fn (Just r)) = [pageTextName wp, revisionTextId r, "files", fileTextName fn]
     toPathSegments (Files   wp)             = [pageTextName wp, "files"]
 
-    -- "preview" is a valid page name, so stick it at /-/preview to
-    -- remove conflict.
-    toPathSegments Preview                  = ["-", "preview"]
+    -- Stick all the special pages under /-/, to avoid name clashes.
+    toPathSegments (Special p)              = "-" : case p of
+                                                      Preview   -> ["preview"]
+                                                      PlainDiff -> ["diff"]
 
     toPathSegments (Static  fn)             = ["static", fileTextName fn]
 
@@ -68,7 +73,10 @@ instance PathInfo Sitemap where
                                         Just fileName -> Static fileName
                                         _             -> Error404
 
-              parse' ["-", "preview"] = Preview
+              parse' ["-", s] = case s of
+                                  "preview" -> Special Preview
+                                  "diff"    -> Special PlainDiff
+                                  _         -> Error404
 
               parse' [p] = case toWikiPage p of
                              Just wikiPage -> View wikiPage Nothing

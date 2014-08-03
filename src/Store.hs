@@ -8,6 +8,7 @@ module Store
     , commitMessage
 
     , Differences
+    , Diff(..)
 
     , Merge
     , mergRevision
@@ -31,9 +32,9 @@ import Control.Applicative ((<$>))
 import Control.Exception (catch)
 import Control.Monad.IO.Class (liftIO)
 import Data.ByteString.Lazy (ByteString)
-import Data.FileStore (Diff, toByteString, fromByteString, modify, revId)
+import Data.FileStore (Diff(..), toByteString, fromByteString, modify, revId, revDateTime, revAuthor, revDescription, history, diff)
 import Data.FileStore.Git (gitFileStore)
-import Data.FileStore.Types (Author(..), Contents, FileStore(..), FileStoreError, MergeInfo(..), RevisionId, UTCTime)
+import Data.FileStore.Types (Author(..), Contents, FileStore(..), FileStoreError, MergeInfo(..), RevisionId, TimeRange(..), UTCTime)
 import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, pack, unpack)
@@ -113,12 +114,23 @@ getStoredBinary fn = withFileStore undefined
 
 -- |Get the history of a file, if it exists, as a list of commits.
 getHistory ::  FileName -> RequestProcessor Sitemap (Maybe [Commit])
-getHistory fn = withFileStore undefined
+getHistory fn = withFileStore $ \fs -> hist fs `onStoreExc` return Nothing
+    where hist fs = (Just . map toCommit) <$> history fs [filePath fn] (TimeRange Nothing Nothing) Nothing
+          toCommit r = Commit { commitRevision           = fromJust . toRevision . pack $ revId r
+                              , commitUnderlyingRevision = revId r
+                              , commitTime               = revDateTime r
+                              , commitAuthor             = pack . authorName $ revAuthor r
+                              , commitMessage            = pack $ revDescription r
+                              }
 
 -- |Get the diff of a file between two revisions, if they're good and
 -- the file exists, as a list of changes.
-getDiff ::  FileName -> Revision -> Revision -> RequestProcessor Sitemap (Maybe Differences)
-getDiff fn r1 r2 = withFileStore undefined
+getDiff :: FileName -> Revision -> Revision -> RequestProcessor Sitemap (Maybe Differences)
+getDiff fn r1 r2 = withFileStore $ \fs -> dif fs `onStoreExc` return Nothing
+    where dif fs = Just . map toText <$> diff fs (filePath fn) (Just $ revisionId r1) (Just $ revisionId r2)
+          toText (First  lines)   = First  $ map pack lines
+          toText (Second lines)   = Second $ map pack lines
+          toText (Both   lines _) = Both    (map pack lines) $ map pack lines
 
 -- |Get the latest revision of a text file, if it exists.
 latestRevision :: FileName -> RequestProcessor Sitemap (Maybe Revision)

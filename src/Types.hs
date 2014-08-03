@@ -9,6 +9,7 @@ module Types
 
     , Revision
     , revisionTextId
+    , revisionShortId
     , isRevisionId
     , toRevision
 
@@ -49,6 +50,10 @@ isPageName = T.all isAlphaNum
 toWikiPage :: Text -> Maybe WikiPage
 toWikiPage p | isPageName p = Just $ WikiPage p
              | otherwise    = Nothing
+
+-- |Get an abbreviated version of a revision ID.
+revisionShortId :: Revision -> Text
+revisionShortId = T.take 7 . revisionTextId
 
 -- |Check if some text is a valid revision id
 isRevisionId :: Text -> Bool

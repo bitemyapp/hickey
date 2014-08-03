@@ -2,8 +2,7 @@
 
 module Handler.Edit
     ( edit
-    , commit
-    , preview) where
+    , commit) where
 
 import Control.Applicative ((<$>))
 import Control.Monad (mapM_, when, void)
@@ -11,16 +10,17 @@ import Data.Maybe (fromMaybe, fromJust, isJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, strip)
 import Data.Text.Encoding (decodeUtf8)
+import Handler.Error
+import Handler.Special
+import Routes
+import Store
 import Templates
 import Text.Blaze.Html5 hiding (param)
 import Text.Blaze.Html5.Attributes
 import Text.Blaze.Internal (textValue)
 import Types
-import Routes
-import Store
 import Web.Seacat (FileInfo(..), Handler, MkUrl, htmlResponse, redirect, param')
 import Web.Seacat.RequestHandler (htmlUrlResponse)
-import Handler.Error
 
 import qualified Data.ByteString.Lazy as B
 import qualified Data.Text as Te
@@ -87,10 +87,6 @@ commit wp = do
 
             -- The revision ID is bad.
             _ -> badForm "The revid field is invalid. This should never happen unles you touch it manually." markup
-
--- |Render a preview of some posted markup.
-preview :: Handler Sitemap
-preview = param' "markup" "" >>= htmlResponse . renderBareMarkup
 
 -----
 

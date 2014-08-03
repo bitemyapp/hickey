@@ -127,7 +127,7 @@ applyHeaderAndFooter wp title html mkurl = docTypeHtml $ do
   H.head $ do
    H.title $ toHtml title
    H.link ! rel "stylesheet" ! type_ "text/css" ! href (sfile "style.css")
-   script ! type_ "text/javascript" ! src (sfile "preview.js") $ T.empty
+   script ! type_ "text/javascript" ! src (sfile "wiki.js") $ T.empty
 
   body $ do
     header $ do

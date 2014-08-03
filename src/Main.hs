@@ -1,9 +1,10 @@
 module Main where
 
 import Data.Text (pack)
-import Handler.View
 import Handler.Edit
+import Handler.Special
 import Handler.Static
+import Handler.View
 import Network.HTTP.Types (StdMethod(..))
 import Routes
 import Web.Seacat (Handler, seacat, defaultSettings)
@@ -35,5 +36,10 @@ route GET  (File    wp fn (Just r)) = fileAtRevision wp fn r
 route GET  (Files   wp)             = files wp
 route GET  (Static  fn)             = static fn
 route POST (Edit    wp)             = commit wp
-route POST  Preview                 = preview
+route POST (Special s)              = routeSpecial s
 route _    _                        = error404 "No such page"
+
+-- |Route a special page.
+routeSpecial :: SpecialPage -> Handler Sitemap
+routeSpecial Preview   = preview
+routeSpecial PlainDiff = plaindiff

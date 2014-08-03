@@ -27,17 +27,6 @@ a:active, a:hover {
     padding: 0 64px;
 }
 
-pre {
-    border: 1px solid #ccc;
-    border-left: 3px solid #ccc;
-    background-color: #fafafa;
-    padding: 0.5em;
-}
-
-code, textarea {
-    font-family: "Ubuntu Mono", monospace;
-}
-
 /* ***** Header */
 header {
     margin: 0 0 1em 0;
@@ -111,6 +100,7 @@ input, textarea {
 }
 
 textarea {
+    font-family: "Ubuntu Mono", monospace;
     width: 100%;
     height: 32em;
 }
@@ -132,7 +122,38 @@ div.error {
     color: #6F0A10;
 }
 
-/* ***** Pandoc highlighting */
+ul.tabs {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+ul.tabs li {
+    display: inline-block;
+    padding: 0.5em;
+}
+
+/* ***** Code */
+pre {
+    border: 1px solid #ccc;
+    border-left: 3px solid #ccc;
+    background-color: #fafafa;
+    padding: 0.5em;
+    white-space: pre-wrap;
+}
+
+code {
+    font-family: "Ubuntu Mono", monospace;
+}
+
+/* ***** Quotes */
+blockquote {
+    border-left: 3px solid #ddd;
+    margin-left: 2em;
+    padding-left: 1em;
+}
+
+/* ***** Pandoc Highlighting */
 code .kw { color: #268BD2; }
 code .dt { color: #268BD2; }
 code .dv, code .bn, code .fl { color: #D33682; }
@@ -144,3 +165,44 @@ code .al { color: #CB4B16; font-weight: bold; }
 code .fu { color: #268BD2; }
 code .re { }
 code .er { color: #D30102; font-weight: bold; }
+
+/* ***** History */
+table.history {
+    border: 1px solid #ccc;
+    border-spacing: 0;
+    width: 100%;
+}
+
+table.history tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+table.history td {
+    padding: 0.5em;
+}
+
+table.history h2 {
+    margin: 0;
+    padding: 0;
+    font-size: 0.95em;
+    font-family: "Droid Serif", serif;
+}
+
+table.history p {
+    margin: 0;
+    padding: 0;
+    font-size: 0.8em;
+    color: #999;
+}
+
+table.history .author {
+    color: #666;
+}
+
+span.first {
+    color: #990000;
+}
+
+span.second {
+    color: #009900;
+}
