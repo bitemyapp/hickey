@@ -18,7 +18,7 @@ import Text.Blaze.Internal (textValue)
 import Types
 import Routes
 import Store
-import Web.Seacat (FileInfo(..), Handler, MkUrl, htmlResponse, redirect, param, param', files)
+import Web.Seacat (FileInfo(..), Handler, MkUrl, htmlResponse, redirect, param')
 import Web.Seacat.RequestHandler (htmlUrlResponse)
 import Handler.Error
 
@@ -38,8 +38,7 @@ edit wp = do
 
   htmlUrlResponse $ renderEditPage wp current $ fromMaybe "" wikiPage
 
--- |Save an edit, possibly uploading some new attachments in the
--- process.
+-- |Save an edit, possibly resolving a merge in the process.
 --
 -- TODO: If there's something objectional with the edit, display the
 -- edit form again, rather than just an error page.
@@ -57,61 +56,42 @@ commit wp = do
   then htmlUrlResponse renderBadForm
   -- All required fields are present
   else do
-    thefiles <- restrict <$> files
-    if not (null thefiles) && not (all (isFileName . decodeUtf8 . fileName . snd) thefiles)
-    -- Nooo, bad filenames!
-    then htmlUrlResponse renderBadFiles
-    else do
-      -- Check the file hasn't been modified since we started.
-      current <- latestRevision $ pageFileName wp
-      case revid of
-        "new" -> if isJust current
-                -- Show the edit page again, indicating that the page
-                -- was created in the intervening time.
-                then do
-                  wikiPage <- fromJust <$> getStoredFile (pageFileName wp)
-                  conflict wp current $ "<<<\n" <> wikiPage <> "\n===\n" <> markup <> "\n>>>"
+    -- Check the file hasn't been modified since we started.
+    current <- latestRevision $ pageFileName wp
+    case revid of
+      "new" -> if isJust current
+              -- Show the edit page again, indicating that the page
+              -- was created in the intervening time.
+              then do
+                wikiPage <- fromJust <$> getStoredFile (pageFileName wp)
+                conflict wp current $ "<<<\n" <> wikiPage <> "\n===\n" <> markup <> "\n>>>"
 
-                -- Commit everything
-                else do
-                  createPage who desc markup thefiles
+              -- Commit everything
+              else do
+                  create (pageFileName wp) who desc markup
                   redirect $ View wp Nothing
 
-        _ -> case toRevision revid of
-              Just r -> if Just r /= current
-                       -- Show the edit page again, with the merge
-                       -- conflict in the edit box.
-                       then do
-                         mergeinfo <- (\(Left x) -> x) <$> save (pageFileName wp) r who desc markup
-                         conflict wp current $ mergText mergeinfo
+      _ -> case toRevision revid of
+            Just r -> if Just r /= current
+                     -- Show the edit page again, with the merge
+                     -- conflict in the edit box.
+                     then do
+                       mergeinfo <- (\(Left x) -> x) <$> save (pageFileName wp) r who desc markup
+                       conflict wp current $ mergText mergeinfo
 
-                       -- Commit everything
-                       else do
-                         updatePage who desc markup r thefiles
-                         redirect $ View wp Nothing
+                     -- Commit everything
+                     else do
+                       void $ save (pageFileName wp) r who desc markup
+                       redirect $ View wp Nothing
 
-              -- The revision ID is bad.
-              _ -> htmlUrlResponse renderBadForm
+            -- The revision ID is bad.
+            _ -> htmlUrlResponse renderBadForm
 
-  where createPage who desc markup thefiles = do
-          uploadAll wp who desc thefiles
-          create (pageFileName wp) who desc markup
-
-        updatePage who desc markup rev thefiles = do
-          uploadAll wp who desc thefiles
-          void $ save (pageFileName wp) rev who desc markup
-
-        uploadAll wp who desc = mapM_ $ \(_, file) -> overwrite wp (tofn file) who desc $ fileContent file
-
-        conflict wp r merg = htmlUrlResponse $ renderEditPage wp r merg
-
-        tofn file = fromJust . toFileName . decodeUtf8 $ fileName file
-
-        restrict = filter $ not . B.null . fileContent . snd
+  where conflict wp r merg = htmlUrlResponse $ renderEditPage wp r merg
 
 -- |Render a preview of some posted markup.
 preview :: Handler Sitemap
-preview = param "markup" >>= htmlResponse . renderBareMarkup . fromMaybe ""
+preview = param' "markup" "" >>= htmlResponse . renderBareMarkup
 
 -----
 
@@ -141,15 +121,3 @@ renderEditPage wp r md = renderHtmlPage "Edit" $ \mkurl -> do
           in case r of
                Just rev -> revid $ revisionTextId rev
                Nothing  -> revid "new"
-
-      hr
-
-      -- Now we have new attachments. Javascript can add on new
-      -- entries.
-      ol ! A.id (textValue "fileform") $
-       li $
-         input ! name (textValue "file0") ! type_ (textValue "file")
-
-      -- Don't say you haven't been warned…
-      p ! class_ (textValue "notice") $ T.toHtml "Filenames must be of the form [a-zA-Z0-9]+.[a-zA-Z0-9]+. If a file is uploaded with the same name as a currently existing file attached to this page, the existing file will be replaced."
-      
