@@ -15,7 +15,6 @@ import Data.Text (Text, unpack, replace)
 import Routes
 import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
-import Text.Blaze.Internal (textValue)
 import Text.Pandoc.Options (WriterOptions(..))
 import Text.Pandoc.Readers.Markdown (readMarkdown)
 import Text.Pandoc.Writers.HTML (writeHtml)
@@ -33,7 +32,7 @@ renderWikiPage :: WikiPage
                -> Text
                -- ^The contents
                -> MkUrl Sitemap -> Html
-renderWikiPage wp = applyHeaderAndFooter (Just wp) (pageTextName wp) . renderMarkdown
+renderWikiPage wp = applyHeaderAndFooter (Just wp) (pageTextName wp) . article . renderMarkdown
 
 -- |Render a wiki page (written in Markdown) + revision information to HTML.
 renderWikiPageAt :: WikiPage
@@ -43,7 +42,7 @@ renderWikiPageAt :: WikiPage
                  -> Text
                  -- ^The contents
                  -> MkUrl Sitemap -> Html
-renderWikiPageAt wp r = applyHeaderAndFooter (Just wp) (pageTextName wp <> " at " <> revisionTextId r) . renderMarkdown
+renderWikiPageAt wp r = applyHeaderAndFooter (Just wp) (pageTextName wp <> " at " <> revisionTextId r) . article . renderMarkdown
 
 -- |Render a notice (written in plain text) to HTML.
 renderNoticePage :: Text
@@ -98,9 +97,10 @@ renderMarkdownToToC = renderMarkdownNoToC' . preprocess
 renderMarkdownToToC' :: String -> Html
 renderMarkdownToToC' md = let toc = writeHtml writerOptions $ readMarkdown readerOptions md
                           in unless (B.null toc) $
-                               nav ! A.id (textValue "toc") $ do
-                                 h1 $ T.toHtml "Table of Contents"
-                                 toc
+                               aside $
+                                 nav ! A.id "toc" $ do
+                                   h1 $ T.toHtml "Table of Contents"
+                                   toc
 
     where readerOptions = def
           writerOptions = def { writerStandalone      = True
@@ -134,7 +134,7 @@ applyHeaderAndFooter wp title html mkurl = docTypeHtml $ do
           li $ T.link mkurl "FrontPage" $ View (fromJust $ toWikiPage "FrontPage") Nothing
           pageNav
 
-    article html
+    H.div ! class_ "container" $ html
 
   where pageNav = when (isJust wp) $ do
                     let wikiPage = fromJust wp
