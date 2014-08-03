@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Store
     ( Commit
     , commitRevision
@@ -7,25 +9,40 @@ module Store
 
     , Differences
 
+    , Merge
+    , mergRevision
+    , mergConflicts
+    , mergText
+
     , getStoredFile
     , getStoredFileAt
     , getStoredBinary
     , getStoredBinaryAt
     , getHistory
     , getDiff
+
+    , latestRevision
+
+    , create
+    , Store.save
+    , overwrite
     ) where
 
 import Control.Applicative ((<$>))
 import Control.Exception (catch)
 import Control.Monad.IO.Class (liftIO)
 import Data.ByteString.Lazy (ByteString)
-import Data.FileStore.Generic (Diff)
+import Data.FileStore (Diff, toByteString, fromByteString, modify, revId)
 import Data.FileStore.Git (gitFileStore)
-import Data.FileStore.Types (Contents, FileStore(..), FileStoreError, RevisionId, UTCTime, toByteString, fromByteString)
+import Data.FileStore.Types (Author(..), Contents, FileStore(..), FileStoreError, MergeInfo(..), RevisionId, UTCTime)
+import Data.Maybe (fromJust)
+import Data.Monoid ((<>))
 import Data.Text (Text, pack, unpack)
 import Routes
 import Types
 import Web.Seacat (RequestProcessor, conf')
+
+import qualified Data.FileStore as FS
 
 data Commit = Commit { commitRevision :: Revision
                      , commitUnderlyingRevision :: RevisionId
@@ -35,6 +52,12 @@ data Commit = Commit { commitRevision :: Revision
                      }
 
 type Differences = [Diff [Text]]
+
+data Merge = Merge { mergRevision  :: Revision
+                   , mergUnderlyingRevision :: RevisionId
+                   , mergConflicts :: Bool
+                   , mergText      :: Text
+                   }
 
 instance Contents Text where
     fromByteString = pack . fromByteString
@@ -50,6 +73,14 @@ withFileStore f = do
 -- store.
 filePath :: FileName -> FilePath
 filePath = unpack . fileTextName
+
+-- |Get the file path for a binary file.
+fileBinaryPath :: WikiPage -> FileName -> FilePath
+fileBinaryPath wp fn = unpack $ pageTextName wp <> "-files/" <> fileTextName fn
+
+-- |Convert a Revision to a RevisionId.
+revisionId :: Revision -> RevisionId
+revisionId = unpack . revisionTextId
 
 -- |Catch a FileStore exception
 catchStoreExc :: IO a -> (FileStoreError -> IO a) -> IO a
@@ -94,3 +125,66 @@ getHistory fn = withFileStore undefined
 -- the file exists, as a list of changes.
 getDiff ::  FileName -> Revision -> Revision -> RequestProcessor Sitemap (Maybe Differences)
 getDiff fn r1 r2 = withFileStore undefined
+
+-- |Get the latest revision of a text file, if it exists.
+latestRevision :: FileName -> RequestProcessor Sitemap (Maybe Revision)
+latestRevision fn = withFileStore $ \fs -> rev fs `onStoreExc` return Nothing
+    where rev fs = toRevision . pack <$> latest fs (filePath fn)
+
+-- |Create a new text file.
+create :: FileName
+       -> Text
+       -- ^The author
+       -> Text
+       -- ^The change description
+       -> Text
+       -- ^The new contents
+       -> RequestProcessor Sitemap ()
+create fn who desc txt = withFileStore $ \fs -> FS.create fs fp author description txt
+  where fp          = filePath fn
+        author      = Author { authorName = unpack who, authorEmail = "" }
+        description = unpack desc
+
+-- |Update a file if it has not been touched since the given
+-- revision. If it has been, merge conflict information is returned
+-- instead.
+save :: FileName
+     -> Revision
+     -> Text
+     -- ^The author
+     -> Text
+     -- ^The change description
+     -> Text
+     -- ^The new contents
+     -> RequestProcessor Sitemap (Either Merge ())
+save fn r who desc txt = withFileStore $ \fs -> do
+  res <- modify fs fp rid author description txt
+
+  return $
+    case res of
+      Left merge -> Left Merge { mergRevision           = fromJust . toRevision . pack . revId $ mergeRevision merge
+                              , mergUnderlyingRevision = revId $ mergeRevision merge
+                              , mergConflicts          = mergeConflicts merge
+                              , mergText               = pack $ mergeText merge
+                              }
+      _          -> Right ()
+
+  where fp          = filePath fn
+        rid         = revisionId r
+        author      = Author { authorName = unpack who, authorEmail = "" }
+        description = unpack desc
+
+-- |Overwrite a binary file completely.
+overwrite :: WikiPage
+          -> FileName
+          -> Text
+          -- ^The author
+          -> Text
+          -- ^The change description
+          -> ByteString
+          -- ^The new contents
+          -> RequestProcessor Sitemap ()
+overwrite wp fn who desc cntnts = withFileStore $ \fs -> FS.save fs fp author description cntnts
+    where fp          = fileBinaryPath wp fn
+          author      = Author { authorName = unpack who, authorEmail = "" }
+          description = unpack desc
