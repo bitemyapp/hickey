@@ -15,6 +15,7 @@ import Data.Text (Text, unpack, replace)
 import Routes
 import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
+import Text.Blaze.Internal (textValue)
 import Text.Pandoc.Options (WriterOptions(..))
 import Text.Pandoc.Readers.Markdown (readMarkdown)
 import Text.Pandoc.Writers.HTML (writeHtml)
@@ -123,9 +124,10 @@ applyHeaderAndFooter :: Maybe WikiPage
                      -- ^Body
                      -> MkUrl Sitemap -> Html
 applyHeaderAndFooter wp title html mkurl = docTypeHtml $ do
-  H.head $
+  H.head $ do
    H.title $ toHtml title
-    -- Load some CSS stylesheets and magical javascript here
+   H.link ! rel "stylesheet" ! type_ "text/css" ! href (textValue $ flip mkurl [] $ Static . fromJust . toFileName $ "style.css")
+
   body $ do
     header $ do
       h1 $ toHtml title
