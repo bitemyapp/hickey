@@ -4,7 +4,6 @@ module Handler.Error
     ( renderBadPage
     , renderBadRevision
     , renderBadDiff
-    , renderBadForm
     , renderBadFiles) where
 
 import Data.Monoid ((<>))
@@ -44,11 +43,6 @@ renderBadDiff wp r1 r2 = notice "Bad commit range"
                            , revisionTextId r2
                            , "."
                            ]
-
--- |Display an error page, saying that some required form fields are
--- missing.
-renderBadForm :: MkUrl Sitemap -> Html
-renderBadForm = notice "Invalid Form Submission" ["Some required form fields are missing or invalid."]
 
 -- |Display an error page, saying that a filename is bad.
 renderBadFiles :: MkUrl Sitemap -> Html

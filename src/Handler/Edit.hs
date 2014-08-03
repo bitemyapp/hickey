@@ -6,7 +6,7 @@ module Handler.Edit
     , preview) where
 
 import Control.Applicative ((<$>))
-import Control.Monad (mapM_, void)
+import Control.Monad (mapM_, when, void)
 import Data.Maybe (fromMaybe, fromJust, isJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, strip)
@@ -36,12 +36,9 @@ edit wp = do
   wikiPage <- getStoredFile  $ pageFileName wp
   current  <- latestRevision $ pageFileName wp
 
-  htmlUrlResponse $ renderEditPage wp current $ fromMaybe "" wikiPage
+  htmlUrlResponse $ renderEditPage wp current Nothing $ fromMaybe "" wikiPage
 
 -- |Save an edit, possibly resolving a merge in the process.
---
--- TODO: If there's something objectional with the edit, display the
--- edit form again, rather than just an error page.
 commit :: WikiPage -> Handler Sitemap
 commit wp = do
   -- Grab the required fields. For all we care, an empty value is the
@@ -51,9 +48,13 @@ commit wp = do
   desc     <- strip <$> param' "desc"   ""
   revid    <- strip <$> param' "revid"  ""
 
+  -- Error handlers
+  let badForm reason md = htmlUrlResponse $ renderEditPage wp (toRevision revid) (Just reason) md
+  let conflict = badForm "Someone else has edited this page. Please resolve the merge before continuing."
+
   if any ((==0) . Te.length) [markup, who, desc, revid]
   -- Nooo, a bad form!
-  then htmlUrlResponse renderBadForm
+  then badForm "One or more mandatory fields are missing" markup
   -- All required fields are present
   else do
     -- Check the file hasn't been modified since we started.
@@ -64,7 +65,7 @@ commit wp = do
               -- was created in the intervening time.
               then do
                 wikiPage <- fromJust <$> getStoredFile (pageFileName wp)
-                conflict wp current $ "<<<\n" <> wikiPage <> "\n===\n" <> markup <> "\n>>>"
+                conflict $ "<<<\n" <> wikiPage <> "\n===\n" <> markup <> "\n>>>"
 
               -- Commit everything
               else do
@@ -77,7 +78,7 @@ commit wp = do
                      -- conflict in the edit box.
                      then do
                        mergeinfo <- (\(Left x) -> x) <$> save (pageFileName wp) r who desc markup
-                       conflict wp current $ mergText mergeinfo
+                       conflict $ mergText mergeinfo
 
                      -- Commit everything
                      else do
@@ -85,9 +86,7 @@ commit wp = do
                        redirect $ View wp Nothing
 
             -- The revision ID is bad.
-            _ -> htmlUrlResponse renderBadForm
-
-  where conflict wp r merg = htmlUrlResponse $ renderEditPage wp r merg
+            _ -> badForm "The revid field is invalid. This should never happen unles you touch it manually." markup
 
 -- |Render a preview of some posted markup.
 preview :: Handler Sitemap
@@ -97,14 +96,21 @@ preview = param' "markup" "" >>= htmlResponse . renderBareMarkup
 
 -- |Display a page with an area for displaying a preview, and a box
 -- for editing the markup.
-renderEditPage :: WikiPage -> Maybe Revision -> Text -> MkUrl Sitemap -> Html
-renderEditPage wp r md = renderHtmlPage "Edit" $ \mkurl -> do
+renderEditPage :: WikiPage -> Maybe Revision
+               -> Maybe Text
+               -- ^Error message
+               -> Text -> MkUrl Sitemap -> Html
+renderEditPage wp r msg md = renderHtmlPage "Edit" $ \mkurl -> do
+  -- Start off with a nice cheerful error message.
+  when (isJust msg) $
+    H.div ! class_ (textValue "error") $ toHtml (fromJust msg)
+
   -- Inside here lives a rendered preview, we'll have some javascript pull it in
   H.div ! A.id (textValue "preview") $ T.empty
 
   -- And here is the edit form
   H.form ! method (textValue "post") ! action (textValue $ flip mkurl [] $ Edit wp) ! enctype (textValue "multipart/form-data") $
-    fieldset $ do
+    fieldset $
       ol ! A.id (textValue "mainform") $ do
         li $
           textarea ! name (textValue "markup") ! required (textValue "required") $ toHtml md
