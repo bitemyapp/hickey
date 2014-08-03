@@ -7,7 +7,7 @@ module Templates
     , renderHtmlPage
     , renderBareMarkup) where
 
-import Control.Monad (when)
+import Control.Monad (when, unless)
 import Data.Default (def)
 import Data.Maybe (fromJust, isJust)
 import Data.Monoid ((<>))
@@ -15,14 +15,17 @@ import Data.Text (Text, unpack, replace)
 import Routes
 import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
+import Text.Blaze.Internal (textValue)
 import Text.Pandoc.Options (WriterOptions(..))
 import Text.Pandoc.Readers.Markdown (readMarkdown)
 import Text.Pandoc.Writers.HTML (writeHtml)
 import Types
 import Web.Seacat
 
-import qualified Templates.Utils as T
-import qualified Text.Blaze.Html5 as H
+import qualified Templates.Utils             as T
+import qualified Text.Blaze.Html5            as H
+import qualified Text.Blaze.Html5.Attributes as A
+import qualified Text.Blaze.Internal         as B
 
 -- |Render a wiki page (written in Markdown) to HTML.
 renderWikiPage :: WikiPage
@@ -64,42 +67,52 @@ renderHtmlPage title body mkurl = applyHeaderAndFooter Nothing title (body mkurl
 renderBareMarkup :: Text
                  -- ^The markup
                  -> Html
-renderBareMarkup = renderMarkdown
+renderBareMarkup = renderMarkdownNoToC' . preprocess
 
 -----
 
--- |Render some markdown to HTML.
+-- |Render some markdown to HTML, with a table of contents if there are any headings.
+renderMarkdown :: Text -> Html
+renderMarkdown md = let preprocessed = preprocess md
+                    in renderMarkdownToToC' preprocessed >> renderMarkdownNoToC' preprocessed
+
+-- |Render some markdown to HTML, without a table of contents.
 -- TODO: Autolinking of WikiWords
 -- TODO: Plugins
-renderMarkdown :: Text -> Html
-renderMarkdown = writeHtml writerOptions . readMarkdown readerOptions . unpack . replace "\r\n" "\n"
-    where readerOptions = def
-          writerOptions = def { -- In order to include a table of
-                                -- contents, the writer must be in
-                                -- "standalone" mode - but we don't
-                                -- want the default header and footer,
-                                -- just the toc.
-                                --
-                                -- We also use this opportunity to
-                                -- make semantically nicer output,
-                                -- too.
-                                writerStandalone = True
-                              , writerTemplate = unlines [ "<nav id=\"toc\">"
-                                                         , "<h1>Table of Contents</h1>"
-                                                         , "$toc$"
-                                                         , "</nav>"
-                                                         , "<section id=\"article\">"
-                                                         , "$body$"
-                                                         , "</section>"
-                                                         ]
-                              , writerTableOfContents = True
-                              , writerSectionDivs = True
+renderMarkdownNoToC :: Text -> Html
+renderMarkdownNoToC = renderMarkdownNoToC' . preprocess
 
-                                -- The rest of the options are fairly
-                                -- self-explanatory
-                              , writerHtml5 = True
-                              , writerHighlight = True
+renderMarkdownNoToC' :: String -> Html
+renderMarkdownNoToC' = writeHtml writerOptions . readMarkdown readerOptions
+    where readerOptions = def
+          writerOptions = def { writerSectionDivs = True
+                              , writerHtml5       = True
+                              , writerHighlight   = True
                               }
+
+-- |Render some markdown to a table of contents, output is empty if
+-- there are no headings.
+renderMarkdownToToC :: Text -> Html
+renderMarkdownToToC = renderMarkdownNoToC' . preprocess
+
+renderMarkdownToToC' :: String -> Html
+renderMarkdownToToC' md = let toc = writeHtml writerOptions $ readMarkdown readerOptions md
+                          in unless (B.null toc) $
+                               nav ! A.id (textValue "toc") $ do
+                                 h1 $ T.toHtml "Table of Contents"
+                                 toc
+
+    where readerOptions = def
+          writerOptions = def { writerStandalone      = True
+                              , writerTemplate        = "$toc$"
+                              , writerTableOfContents = True
+                              }
+
+-- |Preprocess some wiki-markdown into regular markdown
+-- TODO: Autolinking of WikiWords
+-- TODO: Plugins
+preprocess :: Text -> String
+preprocess = unpack . replace "\r\n" "\n"
 
 -- |Apply the header and footer to a rendered page.
 applyHeaderAndFooter :: Maybe WikiPage
