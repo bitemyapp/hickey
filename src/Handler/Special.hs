@@ -12,6 +12,7 @@ import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
 import Types
 import Web.Seacat (Handler, param', htmlResponse, textResponse)
+import Web.Seacat.RequestHandler (htmlUrlResponse)
 
 import qualified Data.Text        as Te
 import qualified Templates.Utils  as T
@@ -19,7 +20,7 @@ import qualified Text.Blaze.Html5 as H
 
 -- |Render a preview of some posted markup.
 preview :: Handler Sitemap
-preview = param' "markup" "" >>= htmlResponse . renderBareMarkup
+preview = param' "markup" "" >>= htmlUrlResponse . renderBareMarkup
 
 -- |Render a diff of two revisions
 plaindiff :: Handler Sitemap
