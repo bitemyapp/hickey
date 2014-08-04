@@ -20,10 +20,9 @@ preprocess :: Text -> String
 preprocess = unpack
 
 -- |Transform the Pandoc AST before handing it off to the HTML writer.
--- TODO: Empty links
 -- TODO: Style internal broken links
 postprocess :: MkUrl Sitemap -> Pandoc -> Pandoc
-postprocess = wikiWords
+postprocess mkurl = emptyLinks mkurl . wikiWords mkurl
 
 -- |Autolink WikiWords
 wikiWords :: MkUrl Sitemap -> Pandoc -> Pandoc
@@ -52,3 +51,15 @@ wikiWords mkurl = walk ww
           isCCased = isJust . matchRegex regex
           regex    = mkRegex "([A-Z]+[a-z]+){2,}"
           link s   = unpack $ mkurl (View (fromJust . toWikiPage . pack $ s) Nothing) []
+
+-- |Turn empty links into wikilinks.
+--
+-- This lets you link to the article "Git" with `[Git]()`.
+emptyLinks :: MkUrl Sitemap -> Pandoc -> Pandoc
+emptyLinks mkurl = walk lnk
+    where lnk l@(Link [Str s] ("", title)) = if isPageName (pack s)
+                                             then Link [Str s] (link s, title)
+                                             else l
+          lnk i = i
+
+          link s = unpack $ mkurl (View (fromJust . toWikiPage . pack $ s) Nothing) []
