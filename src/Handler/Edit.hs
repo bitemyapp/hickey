@@ -14,6 +14,7 @@ import Handler.Error
 import Handler.Special
 import Routes
 import Store
+import Store.Paths
 import Templates
 import Text.Blaze.Html5 hiding (param)
 import Text.Blaze.Html5.Attributes
@@ -33,8 +34,8 @@ import Control.Monad.IO.Class (liftIO)
 -- |Display an edit form for a page.
 edit :: WikiPage -> Handler Sitemap
 edit wp = do
-  wikiPage <- getStoredFile  $ pageFileName wp
-  current  <- latestRevision $ pageFileName wp
+  wikiPage <- getStoredFile  $ wikipage wp
+  current  <- latestRevision $ wikipage wp
 
   htmlUrlResponse $ renderEditPage wp current Nothing $ fromMaybe "" wikiPage
 
@@ -58,18 +59,18 @@ commit wp = do
   -- All required fields are present
   else do
     -- Check the file hasn't been modified since we started.
-    current <- latestRevision $ pageFileName wp
+    current <- latestRevision $ wikipage wp
     case revid of
       "new" -> if isJust current
               -- Show the edit page again, indicating that the page
               -- was created in the intervening time.
               then do
-                wikiPage <- fromJust <$> getStoredFile (pageFileName wp)
+                wikiPage <- fromJust <$> getStoredFile (wikipage wp)
                 conflict $ "<<<\n" <> wikiPage <> "\n===\n" <> markup <> "\n>>>"
 
               -- Commit everything
               else do
-                  create (pageFileName wp) who desc markup
+                  create (wikipage wp) who desc markup
                   redirect $ View wp Nothing
 
       _ -> case toRevision revid of
@@ -77,12 +78,12 @@ commit wp = do
                      -- Show the edit page again, with the merge
                      -- conflict in the edit box.
                      then do
-                       mergeinfo <- (\(Left x) -> x) <$> save (pageFileName wp) r who desc markup
+                       mergeinfo <- (\(Left x) -> x) <$> save (wikipage wp) r who desc markup
                        conflict $ mergText mergeinfo
 
                      -- Commit everything
                      else do
-                       void $ save (pageFileName wp) r who desc markup
+                       void $ save (wikipage wp) r who desc markup
                        redirect $ View wp Nothing
 
             -- The revision ID is bad.

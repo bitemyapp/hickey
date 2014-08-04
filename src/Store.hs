@@ -15,10 +15,11 @@ module Store
     , mergConflicts
     , mergText
 
+    , Contents
     , getStoredFile
     , getStoredFileAt
-    , getStoredBinary
-    , getStoredBinaryAt
+    , getStoredFileAt'
+
     , getHistory
     , getDiff
 
@@ -37,7 +38,6 @@ import Data.FileStore (Diff(..), toByteString, fromByteString, modify, revId, re
 import Data.FileStore.Git (gitFileStore)
 import Data.FileStore.Types (Author(..), Contents, FileStore(..), FileStoreError, MergeInfo(..), RevisionId, TimeRange(..), UTCTime)
 import Data.Maybe (fromJust)
-import Data.Monoid ((<>))
 import Data.Text (Text, pack, unpack)
 import Routes
 import Types
@@ -70,15 +70,6 @@ withFileStore f = do
   git <- gitFileStore <$> conf' "git" "path"
   liftIO $ f git
 
--- |Convert a FileName to a FilePath, relative to the root of the file
--- store.
-filePath :: FileName -> FilePath
-filePath = unpack . fileTextName
-
--- |Get the file path for a binary file.
-fileBinaryPath :: WikiPage -> FileName -> FilePath
-fileBinaryPath wp fn = unpack $ pageTextName wp <> "-files/" <> fileTextName fn
-
 -- |Convert a Revision to a RevisionId.
 revisionId :: Revision -> RevisionId
 revisionId = unpack . revisionTextId
@@ -93,41 +84,25 @@ onStoreExc dangerous = catchStoreExc dangerous . const
 
 -----
 
--- |Get the contents of the HEAD of a text file, if it exists.
-getStoredFile :: FileName -> RequestProcessor Sitemap (Maybe Text)
-getStoredFile fn = getStoredFileAt' (filePath fn) Nothing
+-- |Get the contents of the HEAD of a file, if it exists.
+getStoredFile :: Contents c => FilePath -> RequestProcessor Sitemap (Maybe c)
+getStoredFile fp = getStoredFileAt' fp Nothing
 
--- |Get the contents of a specific revision of a text file. If the
--- file didn't exist at that revision, return Nothing.
-getStoredFileAt :: FileName -> Revision -> RequestProcessor Sitemap (Maybe Text)
-getStoredFileAt fn r = getStoredFileAt' (filePath fn) $ Just r
+-- |Get the contents of a specific revision of a file. If the file
+-- didn't exist at that revision, return Nothing.
+getStoredFileAt :: Contents c => FilePath -> Revision -> RequestProcessor Sitemap (Maybe c)
+getStoredFileAt fp = getStoredFileAt' fp . Just
 
 -- |Get the contents of a file at the given revision, or the latest if
 -- the revision is unspecified.
-getStoredFileAt' :: FilePath -> Maybe Revision -> RequestProcessor Sitemap (Maybe Text)
+getStoredFileAt' :: Contents c => FilePath -> Maybe Revision -> RequestProcessor Sitemap (Maybe c)
 getStoredFileAt' fn r = withFileStore $ \fs -> contents fs `onStoreExc` return Nothing
     where contents fs = Just <$> retrieve fs fn (unpack . revisionTextId <$> r)
 
--- |Get the contents of the HEAD of a binary file, if it exists, as a
--- lazy bytestring.
-getStoredBinary ::  FilePath -> RequestProcessor Sitemap (Maybe ByteString)
-getStoredBinary fp = getStoredBinaryAt' fp Nothing
-
--- |Get the contents of the given revision of a binary file, if it
--- exists, as a lazy bytestring.
-getStoredBinaryAt ::  FilePath -> Revision -> RequestProcessor Sitemap (Maybe ByteString)
-getStoredBinaryAt fp = getStoredBinaryAt' fp . Just
-
--- |Get the contents of the given revision of the binary file, or HEAD
--- if there is no revision.
-getStoredBinaryAt' :: FilePath -> Maybe Revision -> RequestProcessor Sitemap (Maybe ByteString)
-getStoredBinaryAt' fp r = withFileStore $ \fs -> contents fs `onStoreExc` return Nothing
-    where contents fs = Just <$> retrieve fs fp (unpack . revisionTextId <$> r)
-
 -- |Get the history of a file, if it exists, as a list of commits.
-getHistory ::  FileName -> RequestProcessor Sitemap (Maybe [Commit])
-getHistory fn = withFileStore $ \fs -> hist fs `onStoreExc` return Nothing
-    where hist fs = (Just . map toCommit) <$> history fs [filePath fn] (TimeRange Nothing Nothing) Nothing
+getHistory ::  FilePath -> RequestProcessor Sitemap (Maybe [Commit])
+getHistory fp = withFileStore $ \fs -> hist fs `onStoreExc` return Nothing
+    where hist fs = (Just . map toCommit) <$> history fs [fp] (TimeRange Nothing Nothing) Nothing
           toCommit r = Commit { commitRevision           = fromJust . toRevision . pack $ revId r
                               , commitUnderlyingRevision = revId r
                               , commitTime               = revDateTime r
@@ -137,20 +112,20 @@ getHistory fn = withFileStore $ \fs -> hist fs `onStoreExc` return Nothing
 
 -- |Get the diff of a file between two revisions, if they're good and
 -- the file exists, as a list of changes.
-getDiff :: FileName -> Revision -> Revision -> RequestProcessor Sitemap (Maybe Differences)
-getDiff fn r1 r2 = withFileStore $ \fs -> dif fs `onStoreExc` return Nothing
-    where dif fs = Just . map toText <$> diff fs (filePath fn) (Just $ revisionId r1) (Just $ revisionId r2)
+getDiff :: FilePath -> Revision -> Revision -> RequestProcessor Sitemap (Maybe Differences)
+getDiff fp r1 r2 = withFileStore $ \fs -> dif fs `onStoreExc` return Nothing
+    where dif fs = Just . map toText <$> diff fs fp (Just $ revisionId r1) (Just $ revisionId r2)
           toText (First  lines)   = First  $ map pack lines
           toText (Second lines)   = Second $ map pack lines
           toText (Both   lines _) = Both    (map pack lines) $ map pack lines
 
--- |Get the latest revision of a text file, if it exists.
-latestRevision :: FileName -> RequestProcessor Sitemap (Maybe Revision)
-latestRevision fn = withFileStore $ \fs -> rev fs `onStoreExc` return Nothing
-    where rev fs = toRevision . pack <$> latest fs (filePath fn)
+-- |Get the latest revision of a file, if it exists.
+latestRevision :: FilePath -> RequestProcessor Sitemap (Maybe Revision)
+latestRevision fp = withFileStore $ \fs -> rev fs `onStoreExc` return Nothing
+    where rev fs = toRevision . pack <$> latest fs fp
 
--- |Create a new text file.
-create :: FileName
+-- |Create a new file.
+create :: FilePath
        -> Text
        -- ^The author
        -> Text
@@ -158,15 +133,14 @@ create :: FileName
        -> Text
        -- ^The new contents
        -> RequestProcessor Sitemap ()
-create fn who desc txt = withFileStore $ \fs -> FS.create fs fp author description txt
-  where fp          = filePath fn
-        author      = Author { authorName = unpack who, authorEmail = "" }
+create fp who desc txt = withFileStore $ \fs -> FS.create fs fp author description txt
+  where author      = Author { authorName = unpack who, authorEmail = "" }
         description = unpack desc
 
 -- |Update a file if it has not been touched since the given
 -- revision. If it has been, merge conflict information is returned
 -- instead.
-save :: FileName
+save :: FilePath
      -> Revision
      -> Text
      -- ^The author
@@ -175,7 +149,7 @@ save :: FileName
      -> Text
      -- ^The new contents
      -> RequestProcessor Sitemap (Either Merge ())
-save fn r who desc txt = withFileStore $ \fs -> do
+save fp r who desc txt = withFileStore $ \fs -> do
   res <- modify fs fp rid author description txt
 
   return $
@@ -187,14 +161,12 @@ save fn r who desc txt = withFileStore $ \fs -> do
                               }
       _          -> Right ()
 
-  where fp          = filePath fn
-        rid         = revisionId r
+  where rid         = revisionId r
         author      = Author { authorName = unpack who, authorEmail = "" }
         description = unpack desc
 
--- |Overwrite a binary file completely.
-overwrite :: WikiPage
-          -> FileName
+-- |Overwrite a file completely.
+overwrite :: FilePath
           -> Text
           -- ^The author
           -> Text
@@ -202,7 +174,6 @@ overwrite :: WikiPage
           -> ByteString
           -- ^The new contents
           -> RequestProcessor Sitemap ()
-overwrite wp fn who desc cntnts = withFileStore $ \fs -> FS.save fs fp author description cntnts
-    where fp          = fileBinaryPath wp fn
-          author      = Author { authorName = unpack who, authorEmail = "" }
+overwrite fp who desc cntnts = withFileStore $ \fs -> FS.save fs fp author description cntnts
+    where author      = Author { authorName = unpack who, authorEmail = "" }
           description = unpack desc

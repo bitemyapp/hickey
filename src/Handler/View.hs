@@ -14,6 +14,7 @@ import Data.Time.Format (formatTime)
 import Handler.Error
 import Routes
 import Store
+import Store.Paths
 import System.Locale (defaultTimeLocale)
 import Templates
 import Templates.Utils
@@ -32,7 +33,7 @@ import qualified Text.Blaze.Html5.Attributes as A
 -- |Display a page as it is now.
 page :: WikiPage -> Handler Sitemap
 page wp = do
-  wikiPage <- getStoredFile $ pageFileName wp
+  wikiPage <- getStoredFile $ wikipage wp
   htmlUrlResponse $
     case wikiPage of
       Just contents -> renderWikiPage wp contents
@@ -43,7 +44,7 @@ page wp = do
 -- instead.
 pageAtRevision :: WikiPage -> Revision -> Handler Sitemap
 pageAtRevision wp r = do
-  wikiPage <- getStoredFileAt (pageFileName wp) r
+  wikiPage <- getStoredFileAt (wikipage wp) r
   case wikiPage of
     Just contents -> htmlUrlResponse $ renderWikiPageAt wp r contents
     _             -> htmlUrlResponse $ renderBadRevision wp r
@@ -51,7 +52,7 @@ pageAtRevision wp r = do
 -- |Display all of the commits that have gone into a page.
 history :: WikiPage -> Handler Sitemap
 history wp = do
-  hist <- getHistory $ pageFileName wp
+  hist <- getHistory $ wikipage wp
   htmlUrlResponse $
     case hist of
       Just events -> renderHist wp events
@@ -61,7 +62,7 @@ history wp = do
 -- bad, display an error instead.
 diff :: WikiPage -> Revision -> Revision -> Handler Sitemap
 diff wp r1 r2 = do
-  changelog <- getDiff (pageFileName wp) r1 r2
+  changelog <- getDiff (wikipage wp) r1 r2
   case changelog of
     Just differences -> renderDiff wp r1 r2 differences
     _                -> htmlUrlResponse $ renderBadDiff wp r1 r2
@@ -108,7 +109,7 @@ renderHist wp hist = renderHtmlPage (pageTextName wp <> " History") $ \mkurl -> 
 renderDiff :: WikiPage -> Revision -> Revision -> Differences -> Handler Sitemap
 renderDiff wp r1 r2 diff = do
   let title = pageTextName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2
-  diff <- getDiff (pageFileName wp) r1 r2
+  diff <- getDiff (wikipage wp) r1 r2
   htmlUrlResponse . renderHtmlPage title . const . pre . code $ render diff
 
   where render (Just diff) = mapM_ render' diff

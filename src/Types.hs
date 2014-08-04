@@ -3,7 +3,6 @@
 module Types
     ( WikiPage
     , pageTextName
-    , pageFileName
     , isPageName
     , toWikiPage
 
@@ -37,10 +36,6 @@ newtype Revision = Revision { revisionTextId :: Text }
 -- |A filename is a string [a-zA-Z0-9_-] with a single '.'.
 newtype FileName = FileName { fileTextName :: Text }
     deriving (Eq, Show)
-
--- |Get the filename of a wiki page.
-pageFileName :: WikiPage -> FileName
-pageFileName = fromJust . toFileName . (<> ".md") . pageTextName
 
 -- |Check if some text is a valid page name
 isPageName :: Text -> Bool

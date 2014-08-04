@@ -6,6 +6,7 @@ module Handler.Special
 
 import Routes
 import Store
+import Store.Paths
 import Templates (renderBareMarkup)
 import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
@@ -29,7 +30,7 @@ plaindiff = do
 
   case (toWikiPage wp, toRevision r1, toRevision r2) of
     (Just wikiPage, Just rev1, Just rev2) -> do
-      diff <- getDiff (pageFileName wikiPage) rev1 rev2
+      diff <- getDiff (wikipage wikiPage) rev1 rev2
       htmlResponse $ render diff
 
     _ -> textResponse ""
