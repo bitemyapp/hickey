@@ -44,7 +44,7 @@ commit :: WikiPage -> Handler Sitemap
 commit wp = do
   -- Grab the required fields. For all we care, an empty value is the
   -- same as no value at all - so just default them.
-  markup   <- strip <$> param' "markup" ""
+  markup   <- Te.replace "\r\n" "\n" . strip <$> param' "markup" ""
   who      <- strip <$> param' "who"    ""
   desc     <- strip <$> param' "desc"   ""
   revid    <- strip <$> param' "revid"  ""

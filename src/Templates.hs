@@ -11,7 +11,7 @@ import Control.Monad (when, unless)
 import Data.Default (def)
 import Data.Maybe (fromJust, isJust)
 import Data.Monoid ((<>))
-import Data.Text (Text, unpack, replace)
+import Data.Text (Text, unpack)
 import Routes
 import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
@@ -113,7 +113,7 @@ renderMarkdownToToC' md = let toc = writeHtml writerOptions $ readMarkdown reade
 -- TODO: Autolinking of WikiWords
 -- TODO: Plugins
 preprocess :: Text -> String
-preprocess = unpack . replace "\r\n" "\n"
+preprocess = unpack
 
 -- |Apply the header and footer to a rendered page.
 applyHeaderAndFooter :: Maybe WikiPage
