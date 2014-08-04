@@ -13,12 +13,11 @@ import Data.Maybe (fromJust, isJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, unpack)
 import Routes
+import Templates.MarkdownToHtml
+import Templates.Transformation
 import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
 import Text.Blaze.Internal (textValue)
-import Text.Pandoc.Options (WriterOptions(..))
-import Text.Pandoc.Readers.Markdown (readMarkdown)
-import Text.Pandoc.Writers.HTML (writeHtml)
 import Types
 import Web.Seacat
 
@@ -33,7 +32,7 @@ renderWikiPage :: WikiPage
                -> Text
                -- ^The contents
                -> MkUrl Sitemap -> Html
-renderWikiPage wp = applyHeaderAndFooter (Just wp) (pageTextName wp) . article . renderMarkdown
+renderWikiPage wp = applyHeaderAndFooter (Just wp) (pageTextName wp) . renderArticle
 
 -- |Render a wiki page (written in Markdown) + revision information to HTML.
 renderWikiPageAt :: WikiPage
@@ -43,7 +42,7 @@ renderWikiPageAt :: WikiPage
                  -> Text
                  -- ^The contents
                  -> MkUrl Sitemap -> Html
-renderWikiPageAt wp r = applyHeaderAndFooter (Just wp) (pageTextName wp <> " at " <> revisionShortId r) . article . renderMarkdown
+renderWikiPageAt wp r = applyHeaderAndFooter (Just wp) (pageTextName wp <> " at " <> revisionShortId r) . renderArticle
 
 -- |Render a notice (written in plain text) to HTML.
 renderNoticePage :: Text
@@ -67,53 +66,13 @@ renderHtmlPage title body mkurl = applyHeaderAndFooter Nothing title (body mkurl
 renderBareMarkup :: Text
                  -- ^The markup
                  -> Html
-renderBareMarkup = renderMarkdownNoToC' . preprocess
+renderBareMarkup = writeFragment . postprocess . readMarkdown . preprocess
 
 -----
 
--- |Render some markdown to HTML, with a table of contents if there are any headings.
-renderMarkdown :: Text -> Html
-renderMarkdown md = let preprocessed = preprocess md
-                    in renderMarkdownToToC' preprocessed >> renderMarkdownNoToC' preprocessed
-
--- |Render some markdown to HTML, without a table of contents.
--- TODO: Autolinking of WikiWords
--- TODO: Plugins
-renderMarkdownNoToC :: Text -> Html
-renderMarkdownNoToC = renderMarkdownNoToC' . preprocess
-
-renderMarkdownNoToC' :: String -> Html
-renderMarkdownNoToC' = writeHtml writerOptions . readMarkdown readerOptions
-    where readerOptions = def
-          writerOptions = def { writerSectionDivs = True
-                              , writerHtml5       = True
-                              , writerHighlight   = True
-                              }
-
--- |Render some markdown to a table of contents, output is empty if
--- there are no headings.
-renderMarkdownToToC :: Text -> Html
-renderMarkdownToToC = renderMarkdownNoToC' . preprocess
-
-renderMarkdownToToC' :: String -> Html
-renderMarkdownToToC' md = let toc = writeHtml writerOptions $ readMarkdown readerOptions md
-                          in unless (B.null toc) $
-                               aside $
-                                 nav ! A.id "toc" $ do
-                                   h1 $ T.toHtml "Table of Contents"
-                                   toc
-
-    where readerOptions = def
-          writerOptions = def { writerStandalone      = True
-                              , writerTemplate        = "$toc$"
-                              , writerTableOfContents = True
-                              }
-
--- |Preprocess some wiki-markdown into regular markdown
--- TODO: Autolinking of WikiWords
--- TODO: Plugins
-preprocess :: Text -> String
-preprocess = unpack
+-- |Render some markdown to an article, with a table of contents if there are any headings.
+renderArticle :: Text -> Html
+renderArticle = article . writeDocument . postprocess . readMarkdown . preprocess
 
 -- |Apply the header and footer to a rendered page.
 applyHeaderAndFooter :: Maybe WikiPage
