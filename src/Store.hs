@@ -17,6 +17,9 @@ module Store
 
     , getFileStore
 
+    , getPlugins
+    , getPluginsFS
+
     , Contents
     , getStoredFile
     , getStoredFileFS
@@ -48,12 +51,15 @@ import Control.Exception (catch)
 import Control.Monad (liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.ByteString.Lazy (ByteString)
-import Data.FileStore (Diff(..), toByteString, fromByteString, modify, revId, revDateTime, revAuthor, revDescription, history, diff)
+import Data.FileStore (Diff(..), toByteString, fromByteString, modify, revId, revDateTime, revAuthor, revDescription, diff)
 import Data.FileStore.Git (gitFileStore)
-import Data.FileStore.Types (Author(..), Contents, FileStore(..), FileStoreError, MergeInfo(..), RevisionId, TimeRange(..), UTCTime)
+import Data.FileStore.Types (Author(..), Contents, FileStore(..), FileStoreError, MergeInfo(..), Resource(..), RevisionId, TimeRange(..), UTCTime)
 import Data.Maybe (fromJust, isJust)
 import Data.Text (Text, pack, unpack)
 import Routes
+import Store.Paths
+import System.Directory (canonicalizePath)
+import System.FilePath.Posix (joinPath)
 import Types
 import Web.Seacat (RequestProcessor, conf')
 
@@ -101,6 +107,21 @@ onStoreExc dangerous = catchStoreExc dangerous . const
 -- |Get the file store
 getFileStore :: RequestProcessor Sitemap FileStore
 getFileStore = withFileStore return
+
+-- |Get the list of plugins.
+getPlugins :: RequestProcessor Sitemap [Plugin]
+getPlugins = do
+  gpath <- conf' "git" "path"
+  pluginpath <- liftIO $ canonicalizePath $ joinPath [gpath, plugindir]
+  withFileStore $ \fs -> getPluginsFS fs pluginpath
+
+-- |Alternative version of `getPlugins` which takes a file store and
+-- plugin path.
+getPluginsFS :: MonadIO m => FileStore -> FilePath -> m [Plugin]
+getPluginsFS fs pluginpath = liftIO $ plugins `onStoreExc` return []
+    where plugins = concatMap plug <$> directory fs plugindir
+          plug (FSFile file) = [(file, joinPath [pluginpath, file])]
+          plug _ = []
 
 -- |Get the contents of the HEAD of a file, if it exists.
 getStoredFile :: Contents c => FilePath -> RequestProcessor Sitemap (Maybe c)

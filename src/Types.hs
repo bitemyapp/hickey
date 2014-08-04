@@ -16,12 +16,15 @@ module Types
     , fileTextName
     , isFileName
     , toFileName
+
+    , Plugin
     ) where
 
 import Data.Char (isAlphaNum, isHexDigit)
 import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, splitOn)
+import System.FilePath (FilePath)
 
 import qualified Data.Text as T
 
@@ -36,6 +39,9 @@ newtype Revision = Revision { revisionTextId :: Text }
 -- |A filename is a string [a-zA-Z0-9_-] with a single '.'.
 newtype FileName = FileName { fileTextName :: Text }
     deriving (Eq, Show)
+
+-- |A plugin has a name, and a path to an executable.
+type Plugin = (String, FilePath)
 
 -- |Check if some text is a valid page name
 isPageName :: Text -> Bool

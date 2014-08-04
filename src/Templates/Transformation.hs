@@ -6,29 +6,53 @@ module Templates.Transformation
     , postprocess
     ) where
 
+import Control.Applicative ((<$>))
 import Control.Arrow (first)
 import Control.Monad ((<=<))
-import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.FileStore (FileStore)
 import Data.Maybe (isJust, fromJust)
 import Data.Text (Text, pack, unpack, split)
 import Routes
 import Store
 import Store.Paths
-import Text.Pandoc.Definition (Pandoc, Block(..), Inline(..))
+import System.Process (readProcess)
+import Templates.MarkdownToHtml (readMarkdown)
+import Text.Pandoc.Definition (Pandoc(..), Block(..), Inline(..))
 import Text.Pandoc.Walk
 import Text.Regex (mkRegex, matchRegex)
 import Types
 import Web.Seacat (MkUrl)
 
 -- |Turn the input text into a format suitable for parsing.
--- TODO: Plugins
 preprocess :: Text -> String
 preprocess = unpack
 
 -- |Transform the Pandoc AST before handing it off to the HTML writer.
-postprocess :: (Functor m, MonadIO m) => FileStore -> MkUrl Sitemap -> Pandoc -> m Pandoc
-postprocess fs mkurl = broken fs mkurl <=< return . emptyLinks mkurl . wikiWords mkurl
+postprocess :: (Functor m, MonadIO m) => [Plugin] -> FileStore -> MkUrl Sitemap -> Pandoc -> m Pandoc
+postprocess plugins fs mkurl = broken fs mkurl <=< return . emptyLinks mkurl . wikiWords mkurl <=< expandPlugins plugins
+
+-- |Expand plugins iteratively until the AST settles (with a depth
+-- limit to prevent infinite loops)
+expandPlugins :: (Functor m, MonadIO m) => [Plugin] -> Pandoc -> m Pandoc
+expandPlugins = expandPlugins' 100
+
+  where expandPlugins' 0 _ p  = return p
+        expandPlugins' _ [] p = return p
+        expandPlugins' n plugins p = do
+          expanded <- walkM (expandOnce plugins) p
+          if p == expanded
+          then return p
+          else expandPlugins' (n - 1) plugins expanded
+
+        expandOnce plugins cb@(CodeBlock a@(_, [ty], _) s) = case lookup ty plugins of
+                                                             Just plugin -> execPlugin plugin a s
+                                                             Nothing     -> return cb
+        expandOnce _ b = return b
+
+        execPlugin plugin a s = do
+          Pandoc _ blocks <- readMarkdown <$> liftIO (readProcess plugin [] s)
+          return $ Div a blocks
 
 -- |Autolink WikiWords
 wikiWords :: MkUrl Sitemap -> Pandoc -> Pandoc

@@ -21,10 +21,12 @@ import qualified Text.Blaze.Html5 as H
 -- |Render a preview of some posted markup.
 preview :: Handler Sitemap
 preview = do
-  fs <- getFileStore
-  mkurl <- askMkUrl
-  markup <- param' "markup" ""
-  html <- renderBareMarkup markup fs mkurl
+  fs      <- getFileStore
+  mkurl   <- askMkUrl
+  markup  <- param' "markup" ""
+  plugins <- getPlugins
+  html    <- renderBareMarkup markup plugins fs mkurl
+
   htmlResponse html
 
 -- |Render a diff of two revisions

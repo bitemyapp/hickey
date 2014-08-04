@@ -4,6 +4,7 @@ module Store.Paths
     ( wikipage
     , attachment
     , static
+    , plugindir
     ) where
 
 import Data.Monoid ((<>))
@@ -26,3 +27,7 @@ static :: FileName -> FilePath
 static fn = joinPath [ "static"
                      , unpack $ fileTextName fn
                      ]
+
+-- |Get the path to the plugins.
+plugindir :: FilePath
+plugindir = "plugins"

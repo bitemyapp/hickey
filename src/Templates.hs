@@ -3,6 +3,7 @@
 module Templates
     ( renderWikiPage
     , renderWikiPageAt
+    , renderWikiPageAt'
     , renderNoticePage
     , renderHtmlPage
     , renderBareMarkup) where
@@ -36,8 +37,8 @@ renderWikiPage :: (Functor m, MonadIO m)
                -- ^The page
                -> Text
                -- ^The contents
-               -> FileStore -> MkUrl Sitemap -> m Html
-renderWikiPage wp = renderWikiPage' wp Nothing
+               -> [Plugin] -> FileStore -> MkUrl Sitemap -> m Html
+renderWikiPage wp = renderWikiPageAt' wp Nothing
 
 -- |Render a wiki page (written in Markdown) + revision information to HTML.
 renderWikiPageAt :: (Functor m, MonadIO m)
@@ -47,8 +48,18 @@ renderWikiPageAt :: (Functor m, MonadIO m)
                  -- ^The revision
                  -> Text
                  -- ^The contents
-                 -> FileStore -> MkUrl Sitemap -> m Html
-renderWikiPageAt wp r = renderWikiPage' wp $ Just r
+                 -> [Plugin] -> FileStore -> MkUrl Sitemap -> m Html
+renderWikiPageAt wp r = renderWikiPageAt' wp $ Just r
+
+-- |Render a wiki page (possibly with revision info in title).
+renderWikiPageAt' :: (Functor m, MonadIO m) => WikiPage -> Maybe Revision -> Text -> [Plugin] -> FileStore -> MkUrl Sitemap -> m Html
+renderWikiPageAt' wp r md plugins fs mkurl = do
+  html <- article . writeDocument <$> readWiki md plugins fs mkurl
+  return $ applyHeaderAndFooter (Just wp) title html mkurl
+
+    where title = case r of
+                    Just rev -> pageTextName wp <> " at " <> revisionShortId rev
+                    Nothing  -> pageTextName wp
 
 -- |Render a notice (written in plain text) to HTML.
 renderNoticePage :: Text
@@ -69,24 +80,14 @@ renderHtmlPage title body mkurl = applyHeaderAndFooter Nothing title (body mkurl
 
 -- |Render just some markup, and don't wrap it in the header and
 -- footer (eg, for a preview pane)
-renderBareMarkup :: (Functor m, MonadIO m) => Text -> FileStore -> MkUrl Sitemap -> m Html
-renderBareMarkup md fs mkurl = writeFragment <$> readWiki md fs mkurl
+renderBareMarkup :: (Functor m, MonadIO m) => Text -> [Plugin] -> FileStore -> MkUrl Sitemap -> m Html
+renderBareMarkup md plugins fs mkurl = writeFragment <$> readWiki md plugins fs mkurl
 
 -----
 
--- |Render a wiki page (possibly with revision info in title).
-renderWikiPage' :: (Functor m, MonadIO m) => WikiPage -> Maybe Revision -> Text -> FileStore -> MkUrl Sitemap -> m Html
-renderWikiPage' wp r md fs mkurl = do
-  html <- article . writeDocument <$> readWiki md fs mkurl
-  return $ applyHeaderAndFooter (Just wp) title html mkurl
-
-    where title = case r of
-                    Just rev -> pageTextName wp <> " at " <> revisionShortId rev
-                    Nothing  -> pageTextName wp
-
 -- |Parse WikiMarkdown into regular Markdown and produce a Pandoc AST.
-readWiki :: (Functor m, MonadIO m) => Text -> FileStore -> MkUrl Sitemap -> m Pandoc
-readWiki md fs mkurl = postprocess fs mkurl . readMarkdown $ preprocess md
+readWiki :: (Functor m, MonadIO m) => Text -> [Plugin] -> FileStore -> MkUrl Sitemap -> m Pandoc
+readWiki md plugins fs mkurl = postprocess plugins fs mkurl . readMarkdown $ preprocess md
 
 -- |Apply the header and footer to a rendered page.
 applyHeaderAndFooter :: Maybe WikiPage

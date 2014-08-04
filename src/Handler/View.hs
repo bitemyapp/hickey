@@ -32,25 +32,13 @@ import qualified Text.Blaze.Html5.Attributes as A
 
 -- |Display a page as it is now.
 page :: WikiPage -> Handler Sitemap
-page wp = do
-  fs <- getFileStore
-  mkurl <- askMkUrl
-  wikiPage <- getStoredFile $ wikipage wp
-  case wikiPage of
-    Just contents -> renderWikiPage wp contents fs mkurl >>= htmlResponse
-    _             -> htmlUrlResponse $ renderNewPage wp
+page wp = renderPage wp Nothing $ htmlUrlResponse $ renderNewPage wp
 
 -- |Display a page as it was at the given revision. If the revision ID
 -- is bad (doesn't exist or predates this page), an error is displayed
 -- instead.
 pageAtRevision :: WikiPage -> Revision -> Handler Sitemap
-pageAtRevision wp r = do
-  fs <- getFileStore
-  mkurl <- askMkUrl
-  wikiPage <- getStoredFileAt (wikipage wp) r
-  case wikiPage of
-    Just contents -> renderWikiPageAt wp r contents fs mkurl >>= htmlResponse
-    _             -> htmlUrlResponse $ renderBadRevision wp r
+pageAtRevision wp r = renderPage wp (Just r) $ htmlUrlResponse $ renderBadRevision wp r
 
 -- |Display all of the commits that have gone into a page.
 history :: WikiPage -> Handler Sitemap
@@ -71,6 +59,19 @@ diff wp r1 r2 = do
     _                -> htmlUrlResponse $ renderBadDiff wp r1 r2
 
 -----
+
+-- |Render a wiki page, with a possible revision, displaying a
+-- fallback handler if the page doesn't exist.
+renderPage :: WikiPage -> Maybe Revision -> Handler Sitemap -> Handler Sitemap
+renderPage wp r fallback = do
+  fs       <- getFileStore
+  mkurl    <- askMkUrl
+  plugins  <- getPlugins
+  wikiPage <- getStoredFileAt' (wikipage wp) r
+
+  case wikiPage of
+    Just cntnts -> renderWikiPageAt' wp r cntnts plugins fs mkurl >>= htmlResponse
+    Nothing     -> fallback
 
 -- |Render a new page, inviting users to create it.
 renderNewPage :: WikiPage -> MkUrl Sitemap -> Html

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Render some GraphViz input to a base64-encoded png, which is then
+# embedded into the page.
+
+b64=`dot -Tpng <&0 | base64`
+
+echo "![Rendered Graph](data:image/png;base64,$b64 \"Rendered Graph\")"
