@@ -32,7 +32,7 @@ renderWikiPage :: WikiPage
                -> Text
                -- ^The contents
                -> MkUrl Sitemap -> Html
-renderWikiPage wp = applyHeaderAndFooter (Just wp) (pageTextName wp) . renderArticle
+renderWikiPage wp = renderWikiPage' wp Nothing
 
 -- |Render a wiki page (written in Markdown) + revision information to HTML.
 renderWikiPageAt :: WikiPage
@@ -42,7 +42,7 @@ renderWikiPageAt :: WikiPage
                  -> Text
                  -- ^The contents
                  -> MkUrl Sitemap -> Html
-renderWikiPageAt wp r = applyHeaderAndFooter (Just wp) (pageTextName wp <> " at " <> revisionShortId r) . renderArticle
+renderWikiPageAt wp r = renderWikiPage' wp $ Just r
 
 -- |Render a notice (written in plain text) to HTML.
 renderNoticePage :: Text
@@ -70,9 +70,13 @@ renderBareMarkup = writeFragment . postprocess . readMarkdown . preprocess
 
 -----
 
--- |Render some markdown to an article, with a table of contents if there are any headings.
-renderArticle :: Text -> Html
-renderArticle = article . writeDocument . postprocess . readMarkdown . preprocess
+-- |Render a wiki page (possibly with revision info in title).
+renderWikiPage' :: WikiPage -> Maybe Revision -> Text -> MkUrl Sitemap -> Html
+renderWikiPage' wp r = applyHeaderAndFooter (Just wp) title . article . writeDocument . postprocess . readMarkdown . preprocess
+
+    where title = case r of
+                    Just rev -> pageTextName wp <> " at " <> revisionShortId rev
+                    Nothing  -> pageTextName wp
 
 -- |Apply the header and footer to a rendered page.
 applyHeaderAndFooter :: Maybe WikiPage
