@@ -18,6 +18,7 @@ module Store
     , getStoredFile
     , getStoredFileAt
     , getStoredBinary
+    , getStoredBinaryAt
     , getHistory
     , getDiff
 
@@ -109,8 +110,19 @@ getStoredFileAt' fn r = withFileStore $ \fs -> contents fs `onStoreExc` return N
 
 -- |Get the contents of the HEAD of a binary file, if it exists, as a
 -- lazy bytestring.
-getStoredBinary ::  FileName -> RequestProcessor Sitemap (Maybe ByteString)
-getStoredBinary fn = withFileStore undefined
+getStoredBinary ::  FilePath -> RequestProcessor Sitemap (Maybe ByteString)
+getStoredBinary fp = getStoredBinaryAt' fp Nothing
+
+-- |Get the contents of the given revision of a binary file, if it
+-- exists, as a lazy bytestring.
+getStoredBinaryAt ::  FilePath -> Revision -> RequestProcessor Sitemap (Maybe ByteString)
+getStoredBinaryAt fp = getStoredBinaryAt' fp . Just
+
+-- |Get the contents of the given revision of the binary file, or HEAD
+-- if there is no revision.
+getStoredBinaryAt' :: FilePath -> Maybe Revision -> RequestProcessor Sitemap (Maybe ByteString)
+getStoredBinaryAt' fp r = withFileStore $ \fs -> contents fs `onStoreExc` return Nothing
+    where contents fs = Just <$> retrieve fs fp (unpack . revisionTextId <$> r)
 
 -- |Get the history of a file, if it exists, as a list of commits.
 getHistory ::  FileName -> RequestProcessor Sitemap (Maybe [Commit])

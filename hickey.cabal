@@ -77,12 +77,14 @@ executable hickey
                      , filepath >=1.3 && <1.4
                      , filestore >=0.6 && <0.7
                      , http-types >=0.8 && <0.9
+                     , mime-types >=0.1 && <0.2
                      , old-locale >=1.0 && <1.1
                      , pandoc >=1.10 && <1.13
                      , seacat >= 1.0 && <1.1
                      , text >=1.1 && <1.2
                      , time >=1.4 && <1.5
                      , transformers >= 0.3 && <0.5
+                     , wai >=3.0 && <3.1
                      , web-routes >= 0.25 && <0.28
   
   -- Directories containing source files.
