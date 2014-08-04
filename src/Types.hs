@@ -34,7 +34,7 @@ newtype WikiPage = WikiPage { pageTextName :: Text }
 newtype Revision = Revision { revisionTextId :: Text }
     deriving (Eq, Show)
 
--- |A filename is an alphanumeric string with a single '.'.
+-- |A filename is a string [a-zA-Z0-9_-] with a single '.'.
 newtype FileName = FileName { fileTextName :: Text }
     deriving (Eq, Show)
 
@@ -67,9 +67,10 @@ toRevision r | isRevisionId r = Just $ Revision r
 -- |Check if some text is a valid filename.
 isFileName :: Text -> Bool
 isFileName fn = plen && palpha
-    where palpha = all (T.all isAlphaNum) parts
+    where palpha = all (T.all isFileChr) parts
           plen = length parts == 2
           parts = splitOn "." fn
+          isFileChr c = isAlphaNum c || c == '-' || c == '_'
 
 -- |Convert some text to a filename, if valid.
 toFileName :: Text -> Maybe FileName
