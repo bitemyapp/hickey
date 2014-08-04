@@ -53,7 +53,7 @@ writeFragment = W.writeHtml writerOptions
 -- html is empty if there are no headings in the document)
 writeToC :: Pandoc -> Html
 writeToC p = let toc = W.writeHtml options p
-             in unless (B.null toc) $ do
+             in unless (B.null toc) $
                   aside ! A.id "toc" $
                     nav $ do
                       h1 $ toHtml "Table of Contents"
