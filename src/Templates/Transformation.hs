@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- |Apply arbitrary transformations to the content of wiki pages.
 module Templates.Transformation
     ( preprocess
@@ -5,9 +7,14 @@ module Templates.Transformation
     ) where
 
 import Control.Arrow (first)
+import Control.Monad ((<=<))
+import Control.Monad.IO.Class (MonadIO)
+import Data.FileStore (FileStore)
 import Data.Maybe (isJust, fromJust)
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text, pack, unpack, split)
 import Routes
+import Store
+import Store.Paths
 import Text.Pandoc.Definition (Pandoc, Block(..), Inline(..))
 import Text.Pandoc.Walk
 import Text.Regex (mkRegex, matchRegex)
@@ -20,9 +27,8 @@ preprocess :: Text -> String
 preprocess = unpack
 
 -- |Transform the Pandoc AST before handing it off to the HTML writer.
--- TODO: Style internal broken links
-postprocess :: MkUrl Sitemap -> Pandoc -> Pandoc
-postprocess mkurl = emptyLinks mkurl . wikiWords mkurl
+postprocess :: (Functor m, MonadIO m) => FileStore -> MkUrl Sitemap -> Pandoc -> m Pandoc
+postprocess fs mkurl = broken fs mkurl <=< return . emptyLinks mkurl . wikiWords mkurl
 
 -- |Autolink WikiWords
 wikiWords :: MkUrl Sitemap -> Pandoc -> Pandoc
@@ -57,9 +63,25 @@ wikiWords mkurl = walk ww
 -- This lets you link to the article "Git" with `[Git]()`.
 emptyLinks :: MkUrl Sitemap -> Pandoc -> Pandoc
 emptyLinks mkurl = walk lnk
-    where lnk l@(Link [Str s] ("", title)) = if isPageName (pack s)
+    where lnk l@(Link [Str s] ("", title)) = if isPageName $ pack s
                                              then Link [Str s] (link s, title)
                                              else l
           lnk i = i
 
           link s = unpack $ mkurl (View (fromJust . toWikiPage . pack $ s) Nothing) []
+
+-- |Apply a "broken" class to all internal broken links.
+broken :: (Functor m, MonadIO m) => FileStore -> MkUrl Sitemap -> Pandoc -> m Pandoc
+broken fs mkurl = walkM bork
+    where bork l@(Link is (target, title)) = let last = getLast target
+                                                 wlink = unpack $ mkurl (View (fromJust $ toWikiPage last) Nothing) []
+                                             in if isPageName last && wlink == target
+                                                then do
+                                                  exists <- doesFileExistFS fs $ wikipage . fromJust $ toWikiPage last
+                                                  return $ if exists
+                                                           then l
+                                                           else Span ("", ["broken"], []) [l]
+                                                else return l
+          bork i = return i
+
+          getLast = last . split (=='/') . pack

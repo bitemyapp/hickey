@@ -22,7 +22,7 @@ import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
 import Text.Blaze.Internal (textValue)
 import Types
-import Web.Seacat (Handler, MkUrl)
+import Web.Seacat (Handler, MkUrl, askMkUrl, htmlResponse)
 import Web.Seacat.RequestHandler (htmlUrlResponse)
 
 import qualified Data.Text                   as Te
@@ -33,20 +33,23 @@ import qualified Text.Blaze.Html5.Attributes as A
 -- |Display a page as it is now.
 page :: WikiPage -> Handler Sitemap
 page wp = do
+  fs <- getFileStore
+  mkurl <- askMkUrl
   wikiPage <- getStoredFile $ wikipage wp
-  htmlUrlResponse $
-    case wikiPage of
-      Just contents -> renderWikiPage wp contents
-      _             -> renderNewPage wp
+  case wikiPage of
+    Just contents -> renderWikiPage wp contents fs mkurl >>= htmlResponse
+    _             -> htmlUrlResponse $ renderNewPage wp
 
 -- |Display a page as it was at the given revision. If the revision ID
 -- is bad (doesn't exist or predates this page), an error is displayed
 -- instead.
 pageAtRevision :: WikiPage -> Revision -> Handler Sitemap
 pageAtRevision wp r = do
+  fs <- getFileStore
+  mkurl <- askMkUrl
   wikiPage <- getStoredFileAt (wikipage wp) r
   case wikiPage of
-    Just contents -> htmlUrlResponse $ renderWikiPageAt wp r contents
+    Just contents -> renderWikiPageAt wp r contents fs mkurl >>= htmlResponse
     _             -> htmlUrlResponse $ renderBadRevision wp r
 
 -- |Display all of the commits that have gone into a page.

@@ -23,6 +23,16 @@ a:active, a:hover {
     text-decoration: underline;
 }
 
+.broken a:link, .broken a:visited {
+    text-decoration: line-through;
+    color: #E85A02;
+}
+
+.broken a:active, .broken a:hover {
+    text-decoration: line-through;
+    color: #7E3654;
+}
+
 .container {
     padding: 0 64px;
 }

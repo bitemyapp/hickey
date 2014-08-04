@@ -4,6 +4,7 @@ module Handler.Special
     ( preview
     , plaindiff) where
 
+import Control.Monad ((<=<))
 import Routes
 import Store
 import Store.Paths
@@ -11,8 +12,7 @@ import Templates (renderBareMarkup)
 import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
 import Types
-import Web.Seacat (Handler, param', htmlResponse, textResponse)
-import Web.Seacat.RequestHandler (htmlUrlResponse)
+import Web.Seacat (Handler, param', htmlResponse, textResponse, askMkUrl)
 
 import qualified Data.Text        as Te
 import qualified Templates.Utils  as T
@@ -20,7 +20,12 @@ import qualified Text.Blaze.Html5 as H
 
 -- |Render a preview of some posted markup.
 preview :: Handler Sitemap
-preview = param' "markup" "" >>= htmlUrlResponse . renderBareMarkup
+preview = do
+  fs <- getFileStore
+  mkurl <- askMkUrl
+  markup <- param' "markup" ""
+  html <- renderBareMarkup markup fs mkurl
+  htmlResponse html
 
 -- |Render a diff of two revisions
 plaindiff :: Handler Sitemap
