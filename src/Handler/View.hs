@@ -110,7 +110,7 @@ renderHist wp hist = renderHtmlPage (pageTextName wp <> " History") $ \mkurl -> 
                  td $ H.input ! type_ "radio" ! name "r2" ! value (textValue revid) ! onclick (textValue $ "setr2('" <> pageTextName wp <> "','" <> revid <> "')")
 
 -- |Display a list of changes.
-renderDiff :: WikiPage -> Revision -> Revision -> Differences -> Handler Sitemap
+renderDiff :: WikiPage -> Revision -> Revision -> [Difference] -> Handler Sitemap
 renderDiff wp r1 r2 diff = do
   let title = pageTextName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2
   diff <- getDiff (wikipage wp) r1 r2

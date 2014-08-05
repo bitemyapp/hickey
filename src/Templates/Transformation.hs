@@ -14,7 +14,7 @@ import Data.FileStore (FileStore)
 import Data.Maybe (isJust, fromJust)
 import Data.Text (Text, pack, unpack, split)
 import Routes
-import Store
+import Store.Retrieve (doesFileExistFS)
 import Store.Paths
 import System.Process (readProcess)
 import Templates.MarkdownToHtml (readMarkdown)

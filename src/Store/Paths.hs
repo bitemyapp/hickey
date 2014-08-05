@@ -8,7 +8,7 @@ module Store.Paths
     ) where
 
 import Data.Monoid ((<>))
-import Data.Text (Text, unpack)
+import Data.Text (unpack)
 import System.FilePath.Posix (joinPath)
 import Types
 
