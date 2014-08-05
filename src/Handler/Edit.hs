@@ -5,24 +5,24 @@ module Handler.Edit
     , commit) where
 
 import Control.Applicative ((<$>))
-import Control.Monad (when, void)
+import Control.Monad (void)
 import Data.Maybe (fromMaybe, fromJust, isJust)
 import Data.Monoid ((<>))
-import Data.Text (Text, strip)
+import Data.Text (Text, strip, replace)
 import Routes
 import Store
 import Store.Paths
 import Templates
-import Text.Blaze.Html5 hiding (param)
-import Text.Blaze.Html5.Attributes
+import Templates.Utils (form', input', toHtml, empty)
+import Text.Blaze.Html5 (Html, (!), ul, li, a, textarea, input)
+import Text.Blaze.Html5.Attributes (href, style, name, type_, value, required, class_)
 import Text.Blaze.Internal (textValue)
 import Types
 import Web.Seacat (Handler, MkUrl, redirect, param')
 import Web.Seacat.RequestHandler (htmlUrlResponse)
 
-import qualified Data.Text as Te
-import qualified Templates.Utils as T
-import qualified Text.Blaze.Html5 as H
+import qualified Data.Text                   as Te
+import qualified Text.Blaze.Html5            as H
 import qualified Text.Blaze.Html5.Attributes as A
 
 -- |Display an edit form for a page.
@@ -38,7 +38,7 @@ commit :: WikiPage -> Handler Sitemap
 commit wp = do
   -- Grab the required fields. For all we care, an empty value is the
   -- same as no value at all - so just default them.
-  markup   <- Te.replace "\r\n" "\n" . strip <$> param' "markup" ""
+  markup   <- replace "\r\n" "\n" . strip <$> param' "markup" ""
   who      <- strip <$> param' "who"    ""
   desc     <- strip <$> param' "desc"   ""
   revid    <- strip <$> param' "revid"  ""
@@ -91,34 +91,26 @@ renderEditPage :: WikiPage -> Maybe Revision
                -> Maybe Text
                -- ^Error message
                -> Text -> MkUrl Sitemap -> Html
-renderEditPage wp r msg md = renderHtmlPage "Edit" $ \mkurl -> do
-  -- Start off with a nice cheerful error message.
-  when (isJust msg) $
-    H.div ! class_ "error" $ toHtml (fromJust msg)
+renderEditPage wp r msg md = renderHtmlPage "Edit" form
+    where form   = form' target inputs "Save Changes" msg Nothing (Just before) (Just after)
+          target = Edit wp
+          inputs = [ (textarea ! name "markup" ! required "required" $ toHtml md, Nothing)
+                   , (input' "Your Handle:" "who" "text", Nothing)
+                   , (input' "Edit Summary:" "desc" "text", Nothing)
+                   ]
 
-  ul ! class_ "tabs" $ do
-    li $ a ! A.id "editLnk" ! href "javascript:changeToEditTab()"    ! A.style "font-weight: bold" $ T.toHtml "Edit"
-    li $ a ! A.id "previewLnk" ! href "javascript:changeToPreviewTab()" $ T.toHtml "Preview"
+          before = do
+            -- Fancy tabs to change between edit and preview.
+            ul ! class_ "tabs" $ do
+              li $ a ! A.id "editLnk" ! href "javascript:changeToEditTab()" ! style "font-weight: bold" $ toHtml "Edit"
+              li $ a ! A.id "previewLnk" ! href "javascript:changeToPreviewTab()" $ toHtml "Preview"
 
-  -- Inside here lives a rendered preview, we'll have some javascript pull it in
-  H.div ! A.id "preview" ! A.style "display:none" $ T.empty
+            -- Inside here lives a rendered preview, we'll have some javascript pull it in
+            H.div ! A.id "preview" ! style "display:none" $ empty
 
-  -- And here is the edit form
-  H.form ! A.id "edit" ! method "post" ! action (textValue $ flip mkurl [] $ Edit wp) ! enctype "multipart/form-data" $
-    fieldset $
-      ol ! A.id "mainform" $ do
-        li $
-          textarea ! name "markup" ! required "required" $ toHtml md
-        li $
-          T.input' "Your Handle:" "who" "text"
-        li $
-          T.input' "Edit Summary:" "desc" "text"
-        li $
-          H.input ! type_ "submit" ! value "Save Changes"
-
-        -- We also keep track of the revision, to allow for merging.
-        li ! A.style "display: none" $
-          let revid val = H.input ! name "revid" ! type_ "text" ! value (textValue val) ! required "required"
-          in case r of
-               Just rev -> revid $ revisionTextId rev
-               Nothing  -> revid "new"
+          -- Keep track of the revision, to allow for merging
+          after = li ! style "display: none" $
+                    let revid val = input ! name "revid" ! type_ "text" ! value (textValue val) ! required "required"
+                    in case r of
+                         Just rev -> revid $ revisionTextId rev
+                         Nothing  -> revid "new"

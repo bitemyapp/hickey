@@ -7,13 +7,18 @@ module Templates.Utils
     , input
     , input'
 
+    , form
+    , form'
+
     , toHtml
     , empty) where
 
+import Control.Monad (when)
+import Data.Maybe (isJust, fromJust)
 import Data.Text (Text)
 import Routes (Sitemap)
-import Text.Blaze.Html5 (Html, (!), a, label)
-import Text.Blaze.Html5.Attributes (for, href, name, required, title, type_)
+import Text.Blaze.Html5 (Html, (!), a, label, fieldset, ol, li)
+import Text.Blaze.Html5.Attributes (href, title, for, name, type_, required, class_, method, action, enctype, value)
 import Text.Blaze.Internal (textValue)
 import Web.Seacat (MkUrl)
 
@@ -66,6 +71,47 @@ input' :: Text
 input' lbl nam typ = do
   label ! for (textValue nam) $ toHtml lbl
   H.input ! name (textValue nam) ! type_ (textValue typ) ! required "required"
+
+-- |Simpler version of `form'` with no excess HTML.
+form :: Sitemap -> [(Html, Maybe Text)] -> Text -> Maybe Text -> Maybe Text -> MkUrl Sitemap -> Html
+form target inputs submit err help = form' target inputs submit err help Nothing Nothing
+
+-- |Render a POST form, with optional error text, explanation text, and extra HTML.
+form' :: Sitemap
+      -- ^Target
+      -> [(Html, Maybe Text)]
+      -- ^Input elements, with optional default values
+      -> Text
+      -- ^Caption of submit button
+      -> Maybe Text
+      -- ^Possible error message
+      -> Maybe Text
+      -- ^Possible explanation text
+      -> Maybe Html
+      -- ^Possible HTML between the error and the form. Note that this
+      -- is placed in a block context.
+      -> Maybe Html
+      -- ^Possible HTML in the form, after the submit button. Note that
+      -- this is placed in a list context.
+      -> MkUrl Sitemap -> Html
+form' target inputs submit err help before after mkurl = do
+  when (isJust err) $
+    H.div ! class_ "error" $ toHtml (fromJust err)
+
+  when (isJust before) $ fromJust before
+
+  H.form ! method "post" ! action (textValue $ mkurl target []) ! enctype "multipart/form-data" $
+    fieldset $
+      ol $ do
+        mapM_ renderEle inputs
+        li $ H.input ! type_ "submit" ! value (textValue submit)
+        when (isJust after) $ fromJust after
+
+  when (isJust help) $
+    H.p $ toHtml $ fromJust help
+
+  where renderEle (ele, Just def) = ele ! value (textValue def)
+        renderEle (ele, Nothing)  = ele
 
 -- |A specialised toHtml, to get around the issues caused by
 -- OverloadedStrings.

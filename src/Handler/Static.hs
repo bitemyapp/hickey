@@ -8,8 +8,7 @@ module Handler.Static
     , Handler.Static.static) where
 
 import Control.Applicative ((<$>))
-import Control.Monad (mapM_, when)
-import Data.Maybe (fromJust, isJust)
+import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, pack, strip)
 import Data.Text.Encoding (decodeUtf8)
@@ -20,19 +19,15 @@ import Routes
 import Store
 import Store.Paths
 import Templates (renderHtmlPage)
-import Templates.Utils (link, input', toHtml)
-import Text.Blaze.Html5 (Html, (!), ul, li, form, fieldset, ol)
-import Text.Blaze.Html5.Attributes
-import Text.Blaze.Internal (textValue)
+import Templates.Utils (link, input', form)
+import Text.Blaze.Html5 (Html, ul, li)
 import Types
 import Web.Seacat (Handler, MkUrl, redirect, param', fileName, fileContent)
 import Web.Seacat.RequestHandler (htmlUrlResponse, textResponse')
 
-import qualified Data.ByteString.Lazy        as B
-import qualified Store.Paths                 as P
-import qualified Text.Blaze.Html5            as H
-import qualified Text.Blaze.Html5.Attributes as A
-import qualified Web.Seacat                  as S
+import qualified Data.ByteString.Lazy as B
+import qualified Store.Paths          as P
+import qualified Web.Seacat           as S
 
 -- |Display a file as it exists currently.
 file :: WikiPage -> FileName -> Handler Sitemap
@@ -54,7 +49,8 @@ files wp = do
           ul $ mapM_ (fileHtml mkurl) allfiles
           renderUpload wp Nothing mkurl
 
-        fileHtml mkurl file = li $ link mkurl (pack file) $ File wp (fromJust . toFileName $ pack file) Nothing
+        fileHtml mkurl fle = let pfle = pack fle
+                             in li $ link mkurl pfle $ File wp (fromJust $ toFileName pfle) Nothing
 
 -- |Upload a file.
 upload :: WikiPage -> Handler Sitemap
@@ -97,16 +93,10 @@ fileAt fp r err = do
 
 -- |Render a file upload form, with a possible error message.
 renderUpload :: WikiPage -> Maybe Text -> MkUrl Sitemap -> Html
-renderUpload wp msg mkurl = do
-  when (isJust msg) $
-    H.div ! class_ "error" $ toHtml (fromJust msg)
-
-  H.form ! method "post" ! action (textValue $ flip mkurl [] $ Files wp) ! enctype "multipart/form-data" $
-    fieldset $
-      ol $ do
-        li $ input' "File:" "file" "file"
-        li $ input' "Your Handle:" "who" "text"
-        li $ input' "Edit Summary:" "desc" "text"
-        li $ H.input ! type_ "submit" ! value "Upload File"
-
-  H.p $ toHtml "Filenames must be of the form /[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+/. If you upload a file with the same name as another, the original file will be replaced."
+renderUpload wp msg = form target inputs "Upload File" msg (Just help)
+    where target = Files wp
+          inputs = [ (input' "File" "file" "file", Nothing)
+                   , (input' "Your Handle:" "who" "text", Nothing)
+                   , (input' "Edit Summary:" "desc" "text", Nothing)
+                   ]
+          help = "Filenames must be of the form /[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+/. If you upload a file with the same name as another, the original file will be replaced."
