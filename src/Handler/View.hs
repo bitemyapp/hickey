@@ -7,8 +7,6 @@ module Handler.View
     , diff
     ) where
 
-import Control.Monad (mapM_)
-import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
 import Data.Time.Format (formatTime)
 import Handler.Error
@@ -111,14 +109,10 @@ renderHist wp hist = renderHtmlPage (pageTextName wp <> " History") $ \mkurl -> 
 
 -- |Display a list of changes.
 renderDiff :: WikiPage -> Revision -> Revision -> [Difference] -> Handler Sitemap
-renderDiff wp r1 r2 diff = do
-  let title = pageTextName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2
-  diff <- getDiff (wikipage wp) r1 r2
-  htmlUrlResponse . renderHtmlPage title . const . pre . code $ render diff
+renderDiff wp r1 r2 thediff = do
+  let thetitle = pageTextName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2
+  htmlUrlResponse . renderHtmlPage thetitle . const . pre . code $ mapM_ render thediff
 
-  where render (Just diff) = mapM_ render' diff
-        render Nothing     = T.empty
-
-        render' (First  lines)   = H.span ! class_ "first"  $ T.toHtml $ Te.unlines lines
-        render' (Second lines)   = H.span ! class_ "second" $ T.toHtml $ Te.unlines lines
-        render' (Both   lines _) = H.span ! class_ "both"   $ T.toHtml $ Te.unlines lines
+  where render (First  ls)   = H.span ! class_ "first"  $ T.toHtml $ Te.unlines ls
+        render (Second ls)   = H.span ! class_ "second" $ T.toHtml $ Te.unlines ls
+        render (Both   ls _) = H.span ! class_ "both"   $ T.toHtml $ Te.unlines ls

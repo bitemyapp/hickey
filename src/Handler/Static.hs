@@ -6,9 +6,8 @@ module Handler.Static
     , files
     , Handler.Static.static) where
 
-import Control.Monad.IO.Class (liftIO)
 import Data.Monoid ((<>))
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text, pack)
 import Network.HTTP.Types.Status (ok200, notFound404)
 import Network.Mime (defaultMimeLookup)
 import Network.Wai (responseLBS)
@@ -16,7 +15,7 @@ import Routes
 import Store
 import Store.Paths
 import Types
-import Web.Seacat (Handler, conf')
+import Web.Seacat (Handler)
 import Web.Seacat.RequestHandler (textResponse')
 
 import qualified Store.Paths as P

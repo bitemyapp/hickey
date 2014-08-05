@@ -4,7 +4,6 @@ module Handler.Special
     ( preview
     , plaindiff) where
 
-import Control.Monad ((<=<))
 import Routes
 import Store
 import Store.Paths
@@ -25,9 +24,9 @@ preview = do
   mkurl   <- askMkUrl
   markup  <- param' "markup" ""
   plugins <- getPlugins
-  html    <- renderBareMarkup markup plugins fs mkurl
+  thehtml <- renderBareMarkup markup plugins fs mkurl
 
-  htmlResponse html
+  htmlResponse thehtml
 
 -- |Render a diff of two revisions
 plaindiff :: Handler Sitemap
@@ -46,6 +45,6 @@ plaindiff = do
   where render (Just diff) = mapM_ render' diff
         render Nothing     = T.empty
 
-        render' (First  lines)   = H.span ! class_ "first"  $ toHtml $ Te.unlines lines
-        render' (Second lines)   = H.span ! class_ "second" $ toHtml $ Te.unlines lines
-        render' (Both   lines _) = H.span ! class_ "both"   $ toHtml $ Te.unlines lines
+        render' (First  ls)   = H.span ! class_ "first"  $ toHtml $ Te.unlines ls
+        render' (Second ls)   = H.span ! class_ "second" $ toHtml $ Te.unlines ls
+        render' (Both   ls _) = H.span ! class_ "both"   $ toHtml $ Te.unlines ls

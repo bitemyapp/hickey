@@ -5,13 +5,10 @@ module Handler.Edit
     , commit) where
 
 import Control.Applicative ((<$>))
-import Control.Monad (mapM_, when, void)
+import Control.Monad (when, void)
 import Data.Maybe (fromMaybe, fromJust, isJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, strip)
-import Data.Text.Encoding (decodeUtf8)
-import Handler.Error
-import Handler.Special
 import Routes
 import Store
 import Store.Paths
@@ -20,16 +17,13 @@ import Text.Blaze.Html5 hiding (param)
 import Text.Blaze.Html5.Attributes
 import Text.Blaze.Internal (textValue)
 import Types
-import Web.Seacat (FileInfo(..), Handler, MkUrl, htmlResponse, redirect, param')
+import Web.Seacat (Handler, MkUrl, redirect, param')
 import Web.Seacat.RequestHandler (htmlUrlResponse)
 
-import qualified Data.ByteString.Lazy as B
 import qualified Data.Text as Te
 import qualified Templates.Utils as T
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
-
-import Control.Monad.IO.Class (liftIO)
 
 -- |Display an edit form for a page.
 edit :: WikiPage -> Handler Sitemap

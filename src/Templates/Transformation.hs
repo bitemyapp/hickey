@@ -35,7 +35,7 @@ postprocess plugins fs mkurl = broken fs mkurl <=< return . emptyLinks mkurl . w
 -- |Expand plugins iteratively until the AST settles (with a depth
 -- limit to prevent infinite loops)
 expandPlugins :: (Functor m, MonadIO m) => [Plugin] -> Pandoc -> m Pandoc
-expandPlugins = expandPlugins' 100
+expandPlugins = expandPlugins' (100 :: Integer)
 
   where expandPlugins' 0 _ p  = return p
         expandPlugins' _ [] p = return p
@@ -97,15 +97,15 @@ emptyLinks mkurl = walk lnk
 -- |Apply a "broken" class to all internal broken links.
 broken :: (Functor m, MonadIO m) => FileStore -> MkUrl Sitemap -> Pandoc -> m Pandoc
 broken fs mkurl = walkM bork
-    where bork l@(Link is (target, title)) = let last = getLast target
-                                                 wlink = unpack $ mkurl (View (fromJust $ toWikiPage last) Nothing) []
-                                             in if isPageName last && wlink == target
-                                                then do
-                                                  exists <- doesFileExistFS fs $ wikipage . fromJust $ toWikiPage last
-                                                  return $ if exists
-                                                           then l
-                                                           else Span ("", ["broken"], []) [l]
-                                                else return l
+    where bork l@(Link _ (target, _)) = let tlast = getLast target
+                                            wlink = unpack $ mkurl (View (fromJust $ toWikiPage tlast) Nothing) []
+                                        in if isPageName tlast && wlink == target
+                                           then do
+                                             exists <- doesFileExistFS fs $ wikipage . fromJust $ toWikiPage tlast
+                                             return $ if exists
+                                                      then l
+                                                      else Span ("", ["broken"], []) [l]
+                                           else return l
           bork i = return i
 
           getLast = last . split (=='/') . pack

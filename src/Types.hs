@@ -21,10 +21,7 @@ module Types
     ) where
 
 import Data.Char (isAlphaNum, isHexDigit)
-import Data.Maybe (fromJust)
-import Data.Monoid ((<>))
 import Data.Text (Text, splitOn)
-import System.FilePath (FilePath)
 
 import qualified Data.Text as T
 
