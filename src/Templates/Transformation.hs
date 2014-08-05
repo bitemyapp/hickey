@@ -12,7 +12,7 @@ import Control.Monad ((<=<))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.FileStore (FileStore)
 import Data.Maybe (isJust, fromJust)
-import Data.Text (Text, pack, unpack, split)
+import Data.Text (Text, pack, unpack, replace, split)
 import Routes
 import Store.Retrieve (doesFileExistFS)
 import Store.Paths
@@ -26,7 +26,7 @@ import Web.Seacat (MkUrl)
 
 -- |Turn the input text into a format suitable for parsing.
 preprocess :: Text -> String
-preprocess = unpack
+preprocess = unpack . replace "\r\n" "\n"
 
 -- |Transform the Pandoc AST before handing it off to the HTML writer.
 postprocess :: (Functor m, MonadIO m) => [Plugin] -> FileStore -> MkUrl Sitemap -> Pandoc -> m Pandoc
