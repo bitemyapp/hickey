@@ -1,9 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Store.Paths
-    ( wikipage
+    ( -- *Paths to files
+      wikipage
     , attachment
     , static
+
+      -- *Paths to directories
+    , attachmentdir
+    , staticdir
     , plugindir
     ) where
 
@@ -16,15 +21,23 @@ import Types
 wikipage :: WikiPage -> FilePath
 wikipage wp = unpack $ pageTextName wp <> ".md"
 
+-- |Get the path to the attachments of a page.
+attachmentdir :: WikiPage -> FilePath
+attachmentdir wp = unpack $ pageTextName wp <> "-files"
+
 -- |Get the path to a file attached to a page.
 attachment :: WikiPage -> FileName -> FilePath
-attachment wp fn = joinPath [ unpack $ pageTextName wp <> "-files"
+attachment wp fn = joinPath [ attachmentdir wp
                             , unpack $ fileTextName fn
                             ]
 
+-- |Get the path to the static files.
+staticdir :: FilePath
+staticdir = "static"
+
 -- |Get the path to a static file in the store.
 static :: FileName -> FilePath
-static fn = joinPath [ "static"
+static fn = joinPath [ staticdir
                      , unpack $ fileTextName fn
                      ]
 

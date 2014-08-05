@@ -4,21 +4,35 @@ module Handler.Static
     ( file
     , fileAtRevision
     , files
+    , upload
     , Handler.Static.static) where
 
+import Control.Applicative ((<$>))
+import Control.Monad (mapM_, when)
+import Data.Maybe (fromJust, isJust)
 import Data.Monoid ((<>))
-import Data.Text (Text, pack)
+import Data.Text (Text, pack, strip)
+import Data.Text.Encoding (decodeUtf8)
 import Network.HTTP.Types.Status (ok200, notFound404)
 import Network.Mime (defaultMimeLookup)
 import Network.Wai (responseLBS)
 import Routes
 import Store
 import Store.Paths
+import Templates (renderHtmlPage)
+import Templates.Utils (link, input', toHtml)
+import Text.Blaze.Html5 (Html, (!), ul, li, form, fieldset, ol)
+import Text.Blaze.Html5.Attributes
+import Text.Blaze.Internal (textValue)
 import Types
-import Web.Seacat (Handler)
-import Web.Seacat.RequestHandler (textResponse')
+import Web.Seacat (Handler, MkUrl, redirect, param', fileName, fileContent)
+import Web.Seacat.RequestHandler (htmlUrlResponse, textResponse')
 
-import qualified Store.Paths as P
+import qualified Data.ByteString.Lazy        as B
+import qualified Store.Paths                 as P
+import qualified Text.Blaze.Html5            as H
+import qualified Text.Blaze.Html5.Attributes as A
+import qualified Web.Seacat                  as S
 
 -- |Display a file as it exists currently.
 file :: WikiPage -> FileName -> Handler Sitemap
@@ -30,11 +44,41 @@ fileAtRevision wp fn r = fileAt (attachment wp fn) (Just r) $ pageTextName wp <>
 
 -- |Display the list of files as it is now.
 files :: WikiPage -> Handler Sitemap
-files wp = undefined
+files wp = do
+  allfiles <- listFiles $ attachmentdir wp
+  htmlUrlResponse $ renderHtmlPage thetitle $ thehtml allfiles
+
+  where thetitle = pageTextName wp <> " files"
+
+        thehtml allfiles mkurl = do
+          ul $ mapM_ (fileHtml mkurl) allfiles
+          renderUpload wp Nothing mkurl
+
+        fileHtml mkurl file = li $ link mkurl (pack file) $ File wp (fromJust . toFileName $ pack file) Nothing
+
+-- |Upload a file.
+upload :: WikiPage -> Handler Sitemap
+upload wp = do
+  -- Get and verify the required fields
+  allfiles <- S.files
+  who      <- strip <$> param' "who"  ""
+  desc     <- strip <$> param' "desc" ""
+
+  -- Check stuff
+  if who == "" || desc == ""
+  then htmlUrlResponse $ renderHtmlPage "Upload" $ renderUpload wp $ Just "A required field was missing or invalid."
+  else case restrict allfiles of
+         ((_, fle):_) -> overwrite (attachment wp $ fname fle) who desc (fileContent fle) >> redirect (Files wp)
+         _            -> htmlUrlResponse $ renderHtmlPage "Upload" $ renderUpload wp $ Just "You need to specify a file."
+
+  where restrict = filter $ not . B.null . fileContent . snd
+        fname fle = fromJust . toFileName . decodeUtf8 $ fileName fle
 
 -- |Display a static file, if it exists.
 static :: FileName -> Handler Sitemap
 static fn = fileAt (P.static fn) Nothing $ "Cannot find " <> fileTextName fn
+
+-----
 
 -- |Display a file from the store, with the given content type.
 fileAt :: FilePath
@@ -50,3 +94,19 @@ fileAt fp r err = do
   case contents of
     Just cntnts -> return $ responseLBS ok200 [("Content-Type", defaultMimeLookup $ pack fp)] cntnts
     Nothing     -> textResponse' notFound404 err
+
+-- |Render a file upload form, with a possible error message.
+renderUpload :: WikiPage -> Maybe Text -> MkUrl Sitemap -> Html
+renderUpload wp msg mkurl = do
+  when (isJust msg) $
+    H.div ! class_ "error" $ toHtml (fromJust msg)
+
+  H.form ! method "post" ! action (textValue $ flip mkurl [] $ Files wp) ! enctype "multipart/form-data" $
+    fieldset $
+      ol $ do
+        li $ input' "File:" "file" "file"
+        li $ input' "Your Handle:" "who" "text"
+        li $ input' "Edit Summary:" "desc" "text"
+        li $ H.input ! type_ "submit" ! value "Upload File"
+
+  H.p $ toHtml "Filenames must be of the form /[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+/. If you upload a file with the same name as another, the original file will be replaced."

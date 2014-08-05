@@ -38,6 +38,7 @@ module Store
     -- *Utility functions
     , getFileStore
     , getPlugins
+    , listFiles
     ) where
 
 import Store.History
