@@ -1,17 +1,5 @@
 -- |Functions for writing to the store.
-module Store.Write
-    ( -- *Creating new files
-      create
-    , createFS
-
-    -- *Possibly updating
-    , save
-    , saveFS
-
-    -- *Overwriting
-    , overwrite
-    , overwriteFS
-    ) where
+module Store.Write where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.ByteString.Lazy (ByteString)
@@ -24,6 +12,8 @@ import Web.Routes (PathInfo)
 import Web.Seacat (RequestProcessor)
 
 import qualified Data.FileStore as FS
+
+-- *Creating new files
 
 -- |Create a new file.
 create :: PathInfo r
@@ -42,6 +32,8 @@ createFS :: MonadIO m => FileStore -> FilePath -> Text -> Text -> Text -> m ()
 createFS fs fp who desc txt = liftIO $ FS.create fs fp author description txt
   where author      = toStoreAuthor who
         description = unpack desc
+
+-- *Safe updates
 
 -- |Update a file if it has not been touched since the given
 -- revision. If it has been, merge conflict information is returned
@@ -74,6 +66,8 @@ saveFS fs fp r who desc txt = do
   where rid         = toStoreRevisionId r
         author      = toStoreAuthor who
         description = unpack desc
+
+-- *Unsafe updates
 
 -- |Overwrite a file completely.
 overwrite :: PathInfo r

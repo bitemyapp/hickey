@@ -1,17 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Templates.Utils
-    ( link
-    , link'
-
-    , input
-    , input'
-
-    , form
-    , form'
-
-    , toHtml
-    , empty) where
+module Templates.Utils where
 
 import Control.Monad (when)
 import Data.Maybe (isJust, fromJust)

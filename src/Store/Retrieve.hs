@@ -1,27 +1,5 @@
 -- |Functions for retrieving files from the store.
-module Store.Retrieve
-    ( -- *Retrieving HEAD
-      getStoredFile
-    , getStoredFileFS
-
-      -- *Retrieving old revisions
-    , getStoredFileAt
-    , getStoredFileAtFS
-    , getStoredFileAt'
-    , getStoredFileAtFS'
-
-    -- *Existence checking
-    , doesFileExist
-    , doesFileExistFS
-
-    -- *Directory listing
-    , listFiles
-    , listFilesFS
-
-    -- *Plugins
-    , getPlugins
-    , getPluginsFS
-    ) where
+module Store.Retrieve where
 
 import Control.Applicative ((<$>))
 import Control.Monad (liftM)
@@ -39,6 +17,8 @@ import Types
 import Web.Routes (PathInfo)
 import Web.Seacat (RequestProcessor, conf')
 
+-- *Retrieving HEAD
+
 -- |Get the contents of the HEAD of a file, if it exists.
 getStoredFile :: (PathInfo r, Contents c) => FilePath -> RequestProcessor r (Maybe c)
 getStoredFile fp = withFileStore $ \fs -> getStoredFileFS fs fp
@@ -46,6 +26,8 @@ getStoredFile fp = withFileStore $ \fs -> getStoredFileFS fs fp
 -- |Alternative version of `getStoredFile` which takes a file store.
 getStoredFileFS :: (Contents c, MonadIO m) => FileStore -> FilePath -> m (Maybe c)
 getStoredFileFS fs fp = getStoredFileAtFS' fs fp Nothing
+
+-- *Retrieving old versions
 
 -- |Get the contents of a specific revision of a file. If the file
 -- didn't exist at that revision, return Nothing.
@@ -66,6 +48,8 @@ getStoredFileAtFS' :: (Contents c, MonadIO m) => FileStore -> FilePath -> Maybe 
 getStoredFileAtFS' fs fp r = liftIO $ contents `onStoreExc` return Nothing
     where contents = Just <$> retrieve fs fp (unpack . revisionTextId <$> r)
 
+-- *Existence checking
+
 -- |Check if a file exists at the moment
 doesFileExist :: PathInfo r => FilePath -> RequestProcessor r Bool
 doesFileExist fp = withFileStore $ flip doesFileExistFS fp
@@ -73,6 +57,8 @@ doesFileExist fp = withFileStore $ flip doesFileExistFS fp
 -- |Alternative version of `doesFileExist` which takes a file store.
 doesFileExistFS :: MonadIO m => FileStore -> FilePath -> m Bool
 doesFileExistFS fs fp = liftM (isJust :: Maybe ByteString -> Bool) $ getStoredFileFS fs fp
+
+-- *Directory listing
 
 -- |List the files in a directory.
 listFiles :: PathInfo r => FilePath -> RequestProcessor r [FilePath]
@@ -84,6 +70,8 @@ listFilesFS fs fp = liftIO $ list `onStoreExc` return []
     where list = concatMap file <$> directory fs fp 
           file (FSFile f) = [f]
           file _ = []
+
+-- *Plugins
 
 -- |Get the list of plugins.
 getPlugins :: PathInfo r => RequestProcessor r [Plugin]

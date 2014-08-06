@@ -1,8 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Handler.Special
-    ( preview
-    , plaindiff) where
+module Handler.Special where
 
 import Routes
 import Store

@@ -1,20 +1,10 @@
 -- |Types for FileStores. The types exported from this module abstract
 -- over the underlying Data.FileStore types.
 module Store.Types
-    ( -- *Types
-      Commit(..)
+    ( module Store.Types
     , Contents
-    , Difference
     , Diff(..)
     , FileStore
-    , Merge(..)
-
-    -- *Conversion functions
-    , fromStoreCommit
-    , fromStoreRevision
-    , toStoreRevisionId
-    , fromStoreAuthor
-    , toStoreAuthor
     ) where
 
 import Data.FileStore (Diff(..), revAuthor, revDateTime, revDescription, revId)
@@ -24,6 +14,8 @@ import Data.Text (Text, pack, unpack)
 import Types
 
 import qualified Data.FileStore.Types as FS
+
+-- *Types
 
 -- |A commit consists of a revision ID, time of commit, author text
 -- (at least a name, may be an email), and summary of changes.
@@ -51,6 +43,8 @@ data Merge = Merge { mergRevision  :: Revision
 instance Contents Text where
     fromByteString = pack . fromByteString
     toByteString   = toByteString . unpack
+
+-- *Conversion functions
 
 -- |Turn a FileStore `Revision` into a `Commit`
 fromStoreCommit :: FS.Revision -> Commit

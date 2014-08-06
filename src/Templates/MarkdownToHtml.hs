@@ -2,16 +2,7 @@
 
 -- |Read Markdown to Pandoc, and write Pandoc to HTML. This module
 -- ensures that all reading/writing functions use the same options.
-module Templates.MarkdownToHtml
-    ( readerOptions
-    , writerOptions
-
-    , readMarkdown
-
-    , writeDocument
-    , writeFragment
-    , writeToC
-    ) where
+module Templates.MarkdownToHtml where
 
 import Control.Monad (unless)
 import Data.Default (def)

@@ -1,15 +1,5 @@
 -- |Functions for dealing with the history.
-module Store.History
-    ( -- *Informational
-      latestRevision
-    , latestRevisionFS
-    , getHistory
-    , getHistoryFS
-
-    -- *Comparison
-    , getDiff
-    , getDiffFS
-    ) where
+module Store.History where
 
 import Control.Applicative ((<$>))
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -20,6 +10,8 @@ import Store.Utils
 import Types
 import Web.Routes (PathInfo)
 import Web.Seacat (RequestProcessor)
+
+-- *Informational
 
 -- |Get the latest revision of a file, if it exists.
 latestRevision :: PathInfo r => FilePath -> RequestProcessor r (Maybe Revision)
@@ -38,6 +30,8 @@ getHistory fp = withFileStore $ \fs -> getHistoryFS fs fp
 getHistoryFS :: MonadIO m => FileStore -> FilePath -> m (Maybe [Commit])
 getHistoryFS fs fp = liftIO $ hist `onStoreExc` return Nothing
     where hist = (Just . map fromStoreCommit) <$> history fs [fp] (TimeRange Nothing Nothing) Nothing
+
+-- *Comparison
 
 -- |Get the diff of a file between two revisions, if they're good and
 -- the file exists, as a list of changes.
