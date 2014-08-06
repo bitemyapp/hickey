@@ -41,7 +41,7 @@ instance PathInfo Sitemap where
     toPathSegments (Diff    wp r1 r2)       = [pageTextName wp, revisionTextId r1, revisionTextId r2]
 
     toPathSegments (File    wp fn Nothing)  = [pageTextName wp, "files", fileTextName fn]
-    toPathSegments (File    wp fn (Just r)) = [pageTextName wp, revisionTextId r, "files", fileTextName fn]
+    toPathSegments (File    wp fn (Just r)) = [pageTextName wp, "files", fileTextName fn, revisionTextId r]
     toPathSegments (Files   wp)             = [pageTextName wp, "files"]
 
     -- Stick all the special pages under /-/, to avoid name clashes.
