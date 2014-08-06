@@ -1,13 +1,17 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
+import Data.Maybe (fromJust)
 import Data.Text (pack)
 import Handler.Edit
 import Handler.Special
 import Handler.Static
 import Handler.View
 import Network.HTTP.Types (StdMethod(..))
+import Types
 import Routes
-import Web.Seacat (Handler, seacat, defaultSettings)
+import Web.Seacat (Handler, seacat, defaultSettings, redirect)
 import Web.Seacat.RequestHandler (textResponse)
 
 -- |Start up the web server with default settings.
@@ -26,6 +30,7 @@ error500 = textResponse . pack
 
 -- |Route a request to its handler.
 route :: StdMethod -> Sitemap -> Handler Sitemap
+route GET  FrontPage                = redirect $ View (fromJust $ toWikiPage "FrontPage") Nothing
 route GET  (View    wp Nothing)     = page wp
 route GET  (View    wp (Just r))    = pageAtRevision wp r
 route GET  (Edit    wp)             = edit wp

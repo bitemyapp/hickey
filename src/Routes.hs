@@ -8,7 +8,8 @@ import Data.Text (Text)
 import Types
 import Web.Routes (PathInfo(..), patternParse)
 
-data Sitemap = View    WikiPage (Maybe Revision)
+data Sitemap = FrontPage
+             | View    WikiPage (Maybe Revision)
              | Edit    WikiPage
              | History WikiPage
              | Diff    WikiPage Revision Revision
@@ -24,6 +25,7 @@ data SpecialPage = Preview
                    deriving (Eq, Show)
 
 instance PathInfo Sitemap where
+    toPathSegments FrontPage          = ["FrontPage"]
     toPathSegments (View wp Nothing)  = [pageTextName wp]
     toPathSegments (View wp (Just r)) = [pageTextName wp, revisionTextId r]
 
@@ -47,9 +49,7 @@ instance PathInfo Sitemap where
     fromPathSegments = patternParse parse
         where parse = Right . parse'
 
-              parse' :: [Text] -> Sitemap
-
-              parse' [] = View (fromJust $ toWikiPage "FrontPage") Nothing
+              parse' [] = FrontPage
 
               parse' [p, "edit"] = case toWikiPage p of
                                      Just wikiPage -> Edit wikiPage
