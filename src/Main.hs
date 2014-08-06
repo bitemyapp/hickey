@@ -31,10 +31,12 @@ error500 = textResponse . pack
 -- |Route a request to its handler.
 route :: StdMethod -> Sitemap -> Handler Sitemap
 route GET  FrontPage                = redirect $ View (fromJust $ toWikiPage "FrontPage") Nothing
+route GET  AllPages                 = pages
+route GET  RecentChanges            = history Nothing $ Just 64
 route GET  (View    wp Nothing)     = page wp
 route GET  (View    wp (Just r))    = pageAtRevision wp r
 route GET  (Edit    wp)             = edit wp
-route GET  (History wp)             = history wp
+route GET  (History wp)             = history (Just wp) Nothing
 route GET  (Diff    wp r1 r2)       = diff wp r1 r2
 route GET  (File    wp fn Nothing)  = file wp fn
 route GET  (File    wp fn (Just r)) = fileAtRevision wp fn r

@@ -9,6 +9,8 @@ import Types
 import Web.Routes (PathInfo(..), patternParse)
 
 data Sitemap = FrontPage
+             | AllPages
+             | RecentChanges
              | View    WikiPage (Maybe Revision)
              | Edit    WikiPage
              | History WikiPage
@@ -26,6 +28,9 @@ data SpecialPage = Preview
 
 instance PathInfo Sitemap where
     toPathSegments FrontPage          = ["FrontPage"]
+    toPathSegments AllPages           = ["AllPages"]
+    toPathSegments RecentChanges      = ["RecentChanges"]
+
     toPathSegments (View wp Nothing)  = [pageTextName wp]
     toPathSegments (View wp (Just r)) = [pageTextName wp, revisionTextId r]
 
@@ -50,6 +55,9 @@ instance PathInfo Sitemap where
         where parse = Right . parse'
 
               parse' [] = FrontPage
+
+              parse' ["AllPages"]      = AllPages
+              parse' ["RecentChanges"] = RecentChanges
 
               parse' [p, "edit"] = case toWikiPage p of
                                      Just wikiPage -> Edit wikiPage

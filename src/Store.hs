@@ -1,20 +1,13 @@
 module Store
     ( -- *Updates to the store
-      Commit
-    , commitRevision
-    , commitTime
-    , commitAuthor
-    , commitMessage
+      Commit(..)
 
     -- *Updates to files
     , Difference
     , Diff(..)
 
     -- *Failed updates
-    , Merge
-    , mergRevision
-    , mergConflicts
-    , mergText
+    , Merge(..)
 
     -- *File retrieval
     , Contents

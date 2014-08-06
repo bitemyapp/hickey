@@ -4,6 +4,7 @@ module Store.History where
 import Control.Applicative ((<$>))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.FileStore (TimeRange(..), latest, history, diff)
+import Data.Maybe (isJust, maybeToList)
 import Data.Text (pack)
 import Store.Types
 import Store.Utils
@@ -22,14 +23,19 @@ latestRevisionFS :: MonadIO m => FileStore -> FilePath -> m (Maybe Revision)
 latestRevisionFS fs fp = liftIO $ rev `onStoreExc` return Nothing
     where rev = toRevision . pack <$> latest fs fp
 
--- |Get the history of a file, if it exists, as a list of commits.
-getHistory ::  PathInfo r => FilePath -> RequestProcessor r (Maybe [Commit])
-getHistory fp = withFileStore $ \fs -> getHistoryFS fs fp
+-- |Get the history of a file, if it exists, as a list of commits. If
+-- no file is given, get all history. There is also an optional limit.
+getHistory :: PathInfo r => Maybe FilePath -> Maybe Int -> RequestProcessor r (Maybe [Commit])
+getHistory fp limit = withFileStore $ \fs -> getHistoryFS fs fp limit
 
 -- |Alternative version of `getHistory` which takes a file store.
-getHistoryFS :: MonadIO m => FileStore -> FilePath -> m (Maybe [Commit])
-getHistoryFS fs fp = liftIO $ hist `onStoreExc` return Nothing
-    where hist = (Just . map fromStoreCommit) <$> history fs [fp] (TimeRange Nothing Nothing) Nothing
+getHistoryFS :: MonadIO m => FileStore -> Maybe FilePath -> Maybe Int -> m (Maybe [Commit])
+getHistoryFS fs fp limit = liftIO $ hist `onStoreExc` return Nothing
+    where hist = (Just . mlimit . filter isWikiCommit . map fromStoreCommit) <$> history fs (maybeToList fp) (TimeRange Nothing Nothing) Nothing
+          isWikiCommit = isJust . commitTarget
+          mlimit xs = case limit of
+                        Just n  -> take n xs
+                        Nothing -> xs
 
 -- *Comparison
 

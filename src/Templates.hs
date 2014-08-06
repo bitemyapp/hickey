@@ -107,7 +107,10 @@ applyHeaderAndFooter wp thetitle thehtml mkurl = docTypeHtml $ do
       h1 $ toHtml thetitle
       nav $
         ul $ do
-          li $ T.link mkurl "FrontPage" $ View (fromJust $ toWikiPage "FrontPage") Nothing
+          li $ T.link mkurl "FrontPage"      FrontPage
+          li $ T.link mkurl "All Pages"      AllPages
+          li $ T.link mkurl "Recent Changes" RecentChanges
+
           pageNav
 
     H.div ! class_ "container" $ thehtml

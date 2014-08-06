@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections, OverloadedStrings #-}
+
 -- |Types for FileStores. The types exported from this module abstract
 -- over the underlying Data.FileStore types.
 module Store.Types
@@ -7,10 +9,11 @@ module Store.Types
     , FileStore
     ) where
 
-import Data.FileStore (Diff(..), revAuthor, revDateTime, revDescription, revId)
-import Data.FileStore.Types (Author(..), Contents(..), FileStore, RevisionId, UTCTime)
+import Control.Applicative ((<$>), (<*>))
+import Data.FileStore (Diff(..), revAuthor, revChanges, revDateTime, revDescription, revId)
+import Data.FileStore.Types (Author(..), Change(..), Contents(..), FileStore, RevisionId, UTCTime)
 import Data.Maybe (fromJust)
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text, pack, unpack, splitOn)
 import Types
 
 import qualified Data.FileStore.Types as FS
@@ -18,11 +21,15 @@ import qualified Data.FileStore.Types as FS
 -- *Types
 
 -- |A commit consists of a revision ID, time of commit, author text
--- (at least a name, may be an email), and summary of changes.
+-- (at least a name, may be an email), summary of changes, and a
+-- target. The target is only a Maybe, because of the possibility of
+-- out-of-wiki commits doing strange things. We can filter those out
+-- of histories, however.
 data Commit = Commit { commitRevision :: Revision
                      , commitTime     :: UTCTime
                      , commitAuthor   :: Text
                      , commitMessage  :: Text
+                     , commitTarget   :: Maybe (WikiPage, Maybe FileName)
                      }
 
 -- |A difference is a collection of some lines of text, with an
@@ -52,7 +59,19 @@ fromStoreCommit r = Commit { commitRevision = fromStoreRevision r
                            , commitTime     = revDateTime r
                            , commitAuthor   = fromStoreAuthor $ revAuthor r
                            , commitMessage  = pack $ revDescription r
+                           , commitTarget   = target
                            }
+
+    where target = case revChanges r of
+                     [Added fp]    -> toWikiPath $ pack fp
+                     [Modified fp] -> toWikiPath $ pack fp
+                     _             -> Nothing
+
+          toWikiPath fp = case splitOn ".md" fp of
+                            [pagename, ""] -> (, Nothing) <$> toWikiPage pagename
+                            _ -> case splitOn "-files/" fp of
+                                   [pagename, filename] -> fmap Just <$> ((,) <$> toWikiPage pagename <*> toFileName filename)
+                                   _ -> Nothing
 
 -- |Turn a FileStore `Revision` into a `Revision`.
 fromStoreRevision :: FS.Revision -> Revision
