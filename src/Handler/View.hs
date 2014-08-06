@@ -103,7 +103,7 @@ renderNewPage wp = renderHtmlPage Nothing (pageTextName wp) $ \mkurl -> do
 renderHist :: Maybe WikiPage -> [Commit] -> MkUrl Sitemap -> Html
 renderHist wp hist = renderHtmlPage wp title $ \mkurl -> do
   section $ do
-    h2 $ T.toHtml "Commits"
+    when (isJust wp) $ h2 $ T.toHtml "Commits"
     table ! class_ "history" $
       mapM_ (trow mkurl) hist
 
