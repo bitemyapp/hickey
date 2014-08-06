@@ -9,7 +9,6 @@ module Handler.View
 
 import Data.Monoid ((<>))
 import Data.Time.Format (formatTime)
-import Handler.Error
 import Routes
 import Store
 import Store.Paths
@@ -36,7 +35,8 @@ page wp = renderPage wp Nothing $ htmlUrlResponse $ renderNewPage wp
 -- is bad (doesn't exist or predates this page), an error is displayed
 -- instead.
 pageAtRevision :: WikiPage -> Revision -> Handler Sitemap
-pageAtRevision wp r = renderPage wp (Just r) $ htmlUrlResponse $ renderBadRevision wp r
+pageAtRevision wp r = renderPage wp (Just r) $ htmlUrlResponse err
+    where err = renderNoticePage "Error" $ "Failed to retrieve " <> pageTextName wp <> " at " <> revisionShortId r <> "."
 
 -- |Display all of the commits that have gone into a page.
 history :: WikiPage -> Handler Sitemap
@@ -45,7 +45,7 @@ history wp = do
   htmlUrlResponse $
     case hist of
       Just events -> renderHist wp events
-      _           -> renderBadPage wp
+      _           -> renderNoticePage "Error" $ "Failed to retrieve history for " <> pageTextName wp <> "."
 
 -- |Display the diff between the two revisions. If either revision is
 -- bad, display an error instead.
@@ -54,7 +54,9 @@ diff wp r1 r2 = do
   changelog <- getDiff (wikipage wp) r1 r2
   case changelog of
     Just differences -> renderDiff wp r1 r2 differences
-    _                -> htmlUrlResponse $ renderBadDiff wp r1 r2
+    _                -> htmlUrlResponse err
+
+  where err = renderNoticePage "Error" $ "Failed to retrieve diff for " <> pageTextName wp <> " for " <> revisionShortId r1 <> "–" <> revisionShortId r2 <> "."
 
 -----
 
