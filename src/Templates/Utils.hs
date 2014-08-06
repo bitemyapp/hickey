@@ -99,8 +99,8 @@ form' target inputs submit err help before after mkurl = do
   when (isJust help) $
     H.p $ toHtml $ fromJust help
 
-  where renderEle (ele, Just def) = ele ! value (textValue def)
-        renderEle (ele, Nothing)  = ele
+  where renderEle (ele, Just def) = li $ ele ! value (textValue def)
+        renderEle (ele, Nothing)  = li ele
 
 -- |A specialised toHtml, to get around the issues caused by
 -- OverloadedStrings.
