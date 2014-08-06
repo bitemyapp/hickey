@@ -22,7 +22,7 @@ synopsis:            A git-backed wiki written in Haskell
 homepage:            https://github.com/barrucadu/hickey
 
 -- The license under which the package is released.
-license:             WTFPL
+license:             OtherLicense
 
 -- The file containing the license text.
 license-file:        LICENSE
