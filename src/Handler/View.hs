@@ -75,13 +75,13 @@ renderPage wp r fallback = do
 
 -- |Render a new page, inviting users to create it.
 renderNewPage :: WikiPage -> MkUrl Sitemap -> Html
-renderNewPage wp = renderHtmlPage (pageTextName wp) $ \mkurl -> do
+renderNewPage wp = renderHtmlPage Nothing (pageTextName wp) $ \mkurl -> do
                      _ <- "This page does not exist "
                      link' mkurl "Create New Page" "why not create it?" $ Edit wp
 
 -- |Display a list of commits.
 renderHist :: WikiPage -> [Commit] -> MkUrl Sitemap -> Html
-renderHist wp hist = renderHtmlPage (pageTextName wp <> " History") $ \mkurl -> do
+renderHist wp hist = renderHtmlPage (Just wp) (pageTextName wp <> " History") $ \mkurl -> do
   section $ do
     h2 $ T.toHtml "Commits"
     table ! class_ "history" $
@@ -113,7 +113,7 @@ renderHist wp hist = renderHtmlPage (pageTextName wp <> " History") $ \mkurl -> 
 renderDiff :: WikiPage -> Revision -> Revision -> [Difference] -> Handler Sitemap
 renderDiff wp r1 r2 thediff = do
   let thetitle = pageTextName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2
-  htmlUrlResponse . renderHtmlPage thetitle . const . pre . code $ mapM_ render thediff
+  htmlUrlResponse . renderHtmlPage (Just wp) thetitle . const . pre . code $ mapM_ render thediff
 
   where render (First  ls)   = H.span ! class_ "first"  $ T.toHtml $ Te.unlines ls
         render (Second ls)   = H.span ! class_ "second" $ T.toHtml $ Te.unlines ls

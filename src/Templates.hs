@@ -64,16 +64,18 @@ renderNoticePage :: Text
                  -> Text
                  -- ^Notice text
                  -> MkUrl Sitemap -> Html
-renderNoticePage thetitle text = renderHtmlPage thetitle $ const inner
+renderNoticePage thetitle text = renderHtmlPage Nothing thetitle $ const inner
     where inner = H.div ! class_ "notice" $ toHtml text
 
 -- |Render some HTML into a full page.
-renderHtmlPage :: Text
+renderHtmlPage :: Maybe WikiPage
+               -- ^If present, display the page navigation
+               -> Text
                -- ^Page title
                -> (MkUrl Sitemap -> Html)
                -- ^Body
                -> MkUrl Sitemap -> Html
-renderHtmlPage thetitle thebody mkurl = applyHeaderAndFooter Nothing thetitle (thebody mkurl) mkurl
+renderHtmlPage wp thetitle thebody mkurl = applyHeaderAndFooter wp thetitle (thebody mkurl) mkurl
 
 -- |Render just some markup, and don't wrap it in the header and
 -- footer (eg, for a preview pane)
