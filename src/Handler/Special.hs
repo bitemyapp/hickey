@@ -2,19 +2,14 @@
 
 module Handler.Special where
 
-import Data.Maybe (maybe)
 import Routes
 import Store
 import Store.Paths
 import Templates (renderBareMarkup)
-import Text.Blaze.Html5
-import Text.Blaze.Html5.Attributes
 import Types
 import Web.Seacat (Handler, param', htmlResponse, textResponse, askMkUrl)
 
-import qualified Data.Text        as Te
-import qualified Templates.Utils  as T
-import qualified Text.Blaze.Html5 as H
+import qualified Templates.Utils as T
 
 -- |Render a preview of some posted markup.
 preview :: Handler Sitemap

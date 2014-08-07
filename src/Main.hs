@@ -8,7 +8,6 @@ import Handler.Special
 import Handler.Static
 import Handler.View
 import Network.HTTP.Types (StdMethod(..))
-import Types
 import Routes
 import Web.Seacat (Handler, seacat, defaultSettings, redirect)
 import Web.Seacat.RequestHandler (textResponse)

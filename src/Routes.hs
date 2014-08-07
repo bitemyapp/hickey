@@ -4,7 +4,6 @@ module Routes where
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Maybe (fromJust, fromMaybe)
-import Data.Text (Text)
 import Types
 import Web.Routes (PathInfo(..), patternParse)
 
