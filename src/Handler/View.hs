@@ -9,8 +9,6 @@ module Handler.View
     ) where
 
 import Control.Applicative ((<$>))
-import Control.Monad (when)
-import Data.Maybe (isJust)
 import Data.Monoid ((<>))
 import Data.Text (isSuffixOf, splitOn, pack)
 import Data.Time.Format (formatTime)
@@ -19,7 +17,7 @@ import Store
 import Store.Paths
 import System.Locale (defaultTimeLocale)
 import Templates
-import Templates.Utils (link')
+import Templates.Utils (link', with)
 import Text.Blaze.Html5 hiding (head, map)
 import Text.Blaze.Html5.Attributes
 import Text.Blaze.Internal (textValue)
@@ -27,7 +25,6 @@ import Types
 import Web.Seacat (Handler, MkUrl, askMkUrl, htmlResponse)
 import Web.Seacat.RequestHandler (htmlUrlResponse)
 
-import qualified Data.Text                   as Te
 import qualified Templates.Utils             as T
 import qualified Text.Blaze.Html5            as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -103,12 +100,12 @@ renderNewPage wp = renderHtmlPage Nothing (pageTextName wp) $ \mkurl -> do
 renderHist :: Maybe WikiPage -> [Commit] -> MkUrl Sitemap -> Html
 renderHist wp hist = renderHtmlPage wp title $ \mkurl -> do
   section $ do
-    when (isJust wp) $ h2 $ T.toHtml "Commits"
+    with wp $ const $ h2 $ T.toHtml "Commits"
     table ! class_ "history" $
       mapM_ (trow mkurl) hist
 
-  when (isJust wp) $
-    section $ do
+  with wp $
+    const $ section $ do
       h2  $ T.toHtml "Diff"
       pre $ code ! A.id "diff" $ T.empty
 

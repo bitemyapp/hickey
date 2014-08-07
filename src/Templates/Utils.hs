@@ -2,8 +2,6 @@
 
 module Templates.Utils where
 
-import Control.Monad (when)
-import Data.Maybe (isJust, fromJust)
 import Data.Text (Text)
 import Routes (Sitemap)
 import Store.Types (Difference, Diff(..))
@@ -93,20 +91,18 @@ form' :: Sitemap
       -- this is placed in a list context.
       -> MkUrl Sitemap -> Html
 form' target inputs submit err help before after mkurl = do
-  when (isJust err) $
-    H.div ! class_ "error" $ toHtml (fromJust err)
+  with err $ (H.div ! class_ "error") . toHtml
 
-  when (isJust before) $ fromJust before
+  with before id
 
   H.form ! method "post" ! action (textValue $ mkurl target []) ! enctype "multipart/form-data" $
     fieldset $
       ol $ do
         mapM_ renderEle inputs
         li $ H.input ! type_ "submit" ! value (textValue submit)
-        when (isJust after) $ fromJust after
+        with after id
 
-  when (isJust help) $
-    H.p $ toHtml $ fromJust help
+  with help $ H.p . toHtml
 
   where renderEle (ele, Just def) = li $ ele ! value (textValue def)
         renderEle (ele, Nothing)  = li ele
@@ -119,3 +115,8 @@ toHtml = H.toHtml
 -- |Some empty HTML
 empty :: Html
 empty = toHtml ""
+
+-- |Render some html conditional on a value being present
+with :: Maybe a -> (a -> Html) -> Html
+with (Just x) f = f x
+with Nothing  _ = empty

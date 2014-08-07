@@ -9,15 +9,15 @@ module Templates
     , renderBareMarkup) where
 
 import Control.Applicative ((<$>))
-import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO)
 import Data.FileStore (FileStore)
-import Data.Maybe (fromJust, isJust)
+import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
 import Data.Text (Text)
 import Routes
 import Templates.MarkdownToHtml
 import Templates.Transformation
+import Templates.Utils (with)
 import Text.Blaze.Html5
 import Text.Blaze.Html5.Attributes
 import Text.Blaze.Internal (textValue)
@@ -115,9 +115,7 @@ applyHeaderAndFooter wp thetitle thehtml mkurl = docTypeHtml $ do
 
     H.div ! class_ "container" $ thehtml
 
-  where pageNav = when (isJust wp) $ do
-                    let wikiPage = fromJust wp
-
+  where pageNav = with wp $ \wikiPage -> do
                     li $ T.link mkurl "Edit"    $ Edit    wikiPage
                     li $ T.link mkurl "History" $ History wikiPage
                     li $ T.link mkurl "Files"   $ Files   wikiPage
