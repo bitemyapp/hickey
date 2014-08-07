@@ -19,7 +19,7 @@ import Store
 import Store.Paths
 import System.Locale (defaultTimeLocale)
 import Templates
-import Templates.Utils
+import Templates.Utils (link')
 import Text.Blaze.Html5 hiding (head, map)
 import Text.Blaze.Html5.Attributes
 import Text.Blaze.Internal (textValue)
@@ -155,8 +155,4 @@ renderHist wp hist = renderHtmlPage wp title $ \mkurl -> do
 renderDiff :: WikiPage -> Revision -> Revision -> [Difference] -> Handler Sitemap
 renderDiff wp r1 r2 thediff = do
   let thetitle = pageTextName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2
-  htmlUrlResponse . renderHtmlPage (Just wp) thetitle . const . pre . code $ mapM_ render thediff
-
-  where render (First  ls)   = H.span ! class_ "first"  $ T.toHtml $ Te.unlines ls
-        render (Second ls)   = H.span ! class_ "second" $ T.toHtml $ Te.unlines ls
-        render (Both   ls _) = H.span ! class_ "both"   $ T.toHtml $ Te.unlines ls
+  htmlUrlResponse . renderHtmlPage (Just wp) thetitle . const . pre . code $ T.diff thediff

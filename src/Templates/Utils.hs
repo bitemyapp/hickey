@@ -6,11 +6,13 @@ import Control.Monad (when)
 import Data.Maybe (isJust, fromJust)
 import Data.Text (Text)
 import Routes (Sitemap)
+import Store.Types (Difference, Diff(..))
 import Text.Blaze.Html5 (Html, (!), a, label, fieldset, ol, li)
 import Text.Blaze.Html5.Attributes (href, title, for, name, type_, required, class_, method, action, enctype, value)
 import Text.Blaze.Internal (textValue)
 import Web.Seacat (MkUrl)
 
+import qualified Data.Text        as Te
 import qualified Text.Blaze.Html5 as H
 
 -- |Render a link to HTML, where the inner text is the same as the
@@ -60,6 +62,13 @@ input' :: Text
 input' lbl nam typ = do
   label ! for (textValue nam) $ toHtml lbl
   H.input ! name (textValue nam) ! type_ (textValue typ) ! required "required"
+
+-- |Render a diff.
+diff :: [Difference] -> Html
+diff = mapM_ step
+    where step (First  ls)   = H.span ! class_ "first"  $ toHtml $ Te.unlines ls
+          step (Second ls)   = H.span ! class_ "second" $ toHtml $ Te.unlines ls
+          step (Both   ls _) = H.span ! class_ "both"   $ toHtml $ Te.unlines ls
 
 -- |Simpler version of `form'` with no excess HTML.
 form :: Sitemap -> [(Html, Maybe Text)] -> Text -> Maybe Text -> Maybe Text -> MkUrl Sitemap -> Html

@@ -2,6 +2,7 @@
 
 module Handler.Special where
 
+import Data.Maybe (maybe)
 import Routes
 import Store
 import Store.Paths
@@ -36,13 +37,6 @@ plaindiff = do
   case (toWikiPage wp, toRevision r1, toRevision r2) of
     (Just wikiPage, Just rev1, Just rev2) -> do
       diff <- getDiff (wikipage wikiPage) rev1 rev2
-      htmlResponse $ render diff
+      htmlResponse $ maybe T.empty T.diff diff
 
     _ -> textResponse ""
-
-  where render (Just diff) = mapM_ render' diff
-        render Nothing     = T.empty
-
-        render' (First  ls)   = H.span ! class_ "first"  $ toHtml $ Te.unlines ls
-        render' (Second ls)   = H.span ! class_ "second" $ toHtml $ Te.unlines ls
-        render' (Both   ls _) = H.span ! class_ "both"   $ toHtml $ Te.unlines ls
