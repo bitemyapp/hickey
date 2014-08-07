@@ -8,6 +8,8 @@ import Data.Text (Text)
 import Types
 import Web.Routes (PathInfo(..), patternParse)
 
+-- *Routes
+
 data Sitemap = FrontPage
              | AllPages
              | RecentChanges
@@ -98,3 +100,9 @@ instance PathInfo Sitemap where
                                    in Error404 `fromMaybe` diff
 
               parse' _ = Error404
+
+-- *Standard pages
+
+frontPage     = fromJust $ toWikiPage "FrontPage"
+allPages      = fromJust $ toWikiPage "AllPages"
+recentChanges = fromJust $ toWikiPage "RecentChanges"

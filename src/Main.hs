@@ -2,7 +2,6 @@
 
 module Main where
 
-import Data.Maybe (fromJust)
 import Data.Text (pack)
 import Handler.Edit
 import Handler.Special
@@ -30,7 +29,7 @@ error500 = textResponse . pack
 
 -- |Route a request to its handler.
 route :: StdMethod -> Sitemap -> Handler Sitemap
-route GET  FrontPage                = redirect $ View (fromJust $ toWikiPage "FrontPage") Nothing
+route GET  FrontPage                = redirect $ View frontPage Nothing
 route GET  AllPages                 = pages
 route GET  RecentChanges            = history Nothing $ Just 64
 route GET  (View    wp Nothing)     = page wp
