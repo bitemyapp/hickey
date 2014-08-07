@@ -52,7 +52,7 @@ renderWikiPageAt wp r = renderWikiPageAt' wp $ Just r
 renderWikiPageAt' :: (Functor m, MonadIO m) => WikiPage -> Maybe Revision -> Text -> [Plugin] -> FileStore -> MkUrl Sitemap -> m Html
 renderWikiPageAt' wp r md plugins fs mkurl = do
   thehtml <- article . writeDocument <$> readWiki md plugins fs mkurl
-  return $ applyHeaderAndFooter (Just wp) thetitle thehtml mkurl
+  return $ renderHtmlPage (Just wp) thetitle (const thehtml) mkurl
 
     where thetitle = case r of
                        Just rev -> pageTextName wp <> " at " <> revisionShortId rev
