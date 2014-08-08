@@ -15,6 +15,8 @@ Features:
 
  - Highlight broken wiki links.
 
+ - Inter-wiki links.
+
  - Call external plugins by using fenced code blocks.
 
  - Pages can have file attachments.
@@ -27,7 +29,6 @@ instance of Hickey.
 Planned:
 
  - Automatically-updated category listings.
- - Syntactic niceties for inter-wiki links.
  - Syntactic niceties for linking to specific revisions of pages.
 
 Plugins
@@ -68,6 +69,22 @@ This lets us write this:
 Plugin expansion *is* recursive, so plugins can generate code to be
 expanded by other plugins, but there is a depth limit of 100 to
 prevent infinite loops.
+
+Inter-wiki Links
+----------------
+
+Wikis are all about linking things together, but linking to other
+wikis typically requires you to use a full URL to the article you want
+to link to. Some wikis offer a shorthand, called inter-wiki linking,
+where you associate with an external wiki a prefix, and then you can
+link to articles on it in exactly the same way as you link to internal
+articles, but with the addition of adding on the defined prefix.
+
+Hickey stores inter-wiki link configuration in the interwiki.conf file
+in the root of the repository. Wikipedia is included as an
+example. When rendering, the `{}` is replaced with the link target
+(minus the prefix), allowing you to define links like `wikipedia:Foo`,
+or `[wikipedia:List of Lists]()`, which will work as you expect.
 
 Examples
 --------
