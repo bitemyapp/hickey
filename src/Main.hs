@@ -2,6 +2,8 @@
 
 module Main where
 
+import Data.ConfigFile (emptyCP, readstring)
+import Data.Either.Utils (forceEither)
 import Data.Text (pack)
 import Handler.Edit
 import Handler.Special
@@ -9,12 +11,13 @@ import Handler.Static
 import Handler.View
 import Network.HTTP.Types (StdMethod(..))
 import Routes
-import Web.Seacat (Handler, seacat, defaultSettings, redirect)
+import Web.Seacat (ConfigParser, Handler, SeacatSettings(..), seacat, defaultSettings, redirect)
 import Web.Seacat.RequestHandler (textResponse)
 
 -- |Start up the web server with default settings.
 main :: IO ()
-main = seacat route error500 defaultSettings
+main = seacat route error500 settings
+    where settings = defaultSettings { _config = Just defaults }
 
 -- |Report 404 errors to the user.
 -- TODO: Prettify.
@@ -49,3 +52,10 @@ route _    _                        = error404 "No such page"
 routeSpecial :: SpecialPage -> Handler Sitemap
 routeSpecial Preview   = preview
 routeSpecial PlainDiff = plaindiff
+
+-- |Default configuration
+defaults :: ConfigParser
+defaults = forceEither . readstring emptyCP $ unlines
+  [ "[git]"
+  , "path = wiki"
+  ]
