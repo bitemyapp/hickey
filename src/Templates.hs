@@ -55,8 +55,8 @@ renderWikiPageAt' wp r md plugins fs mkurl = do
   return $ renderHtmlPage (Just wp) thetitle (const thehtml) mkurl
 
     where thetitle = case r of
-                       Just rev -> pageTextName wp <> " at " <> revisionShortId rev
-                       Nothing  -> pageTextName wp
+                       Just rev -> pageNiceName wp <> " at " <> revisionShortId rev
+                       Nothing  -> pageNiceName wp
 
 -- |Render a notice (written in plain text) to HTML.
 renderNoticePage :: Text

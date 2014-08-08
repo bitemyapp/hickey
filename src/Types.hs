@@ -1,7 +1,8 @@
 module Types where
 
 import Data.Char (isAlphaNum, isHexDigit)
-import Data.Text (Text)
+import Data.Text (Text, strip, pack, unpack)
+import Text.Regex (mkRegex, subRegex)
 
 import qualified Data.Text as T
 
@@ -10,6 +11,11 @@ import qualified Data.Text as T
 -- |A wiki page name is some sequence of alphanumeric characters.
 newtype WikiPage = WikiPage { pageTextName :: Text }
     deriving (Eq, Show)
+
+-- |Display a page name with spaces between words.
+pageNiceName :: WikiPage -> Text
+pageNiceName wp = strip . pack $ subRegex regex (unpack $ pageTextName wp) " \\0"
+    where regex = mkRegex "[A-Z][a-z]"
 
 -- |Check if some text is a valid page name
 isPageName :: Text -> Bool

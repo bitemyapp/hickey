@@ -31,11 +31,11 @@ import qualified Web.Seacat           as S
 
 -- |Display a file as it exists currently.
 file :: WikiPage -> FileName -> Handler Sitemap
-file wp fn = fileAt (attachment wp fn) Nothing $ pageTextName wp <> " has no file " <> fileTextName fn
+file wp fn = fileAt (attachment wp fn) Nothing $ pageNiceName wp <> " has no file " <> fileTextName fn
 
 -- |Display a file at the given revision.
 fileAtRevision :: WikiPage -> FileName -> Revision -> Handler Sitemap
-fileAtRevision wp fn r = fileAt (attachment wp fn) (Just r) $ pageTextName wp <> " at " <> revisionShortId r <> " has no file " <> fileTextName fn
+fileAtRevision wp fn r = fileAt (attachment wp fn) (Just r) $ pageNiceName wp <> " at " <> revisionShortId r <> " has no file " <> fileTextName fn
 
 -- |Display the list of files as it is now.
 files :: WikiPage -> Handler Sitemap
@@ -43,7 +43,7 @@ files wp = do
   allfiles <- listFiles $ attachmentdir wp
   htmlUrlResponse $ renderHtmlPage (Just wp) thetitle $ thehtml allfiles
 
-  where thetitle = pageTextName wp <> " files"
+  where thetitle = pageNiceName wp <> " files"
 
         thehtml allfiles mkurl = do
           ul $ mapM_ (fileHtml mkurl) allfiles

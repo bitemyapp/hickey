@@ -91,7 +91,7 @@ renderEditPage :: WikiPage -> Maybe Revision
                -> Maybe Text
                -- ^Error message
                -> Text -> MkUrl Sitemap -> Html
-renderEditPage wp r msg md = renderHtmlPage (const wp <$> r) ("Edit " <> pageTextName wp) form
+renderEditPage wp r msg md = renderHtmlPage (const wp <$> r) ("Edit " <> pageNiceName wp) form
     where form   = form' target inputs "Save Changes" msg Nothing (Just before) (Just after)
           target = Edit wp
           inputs = [ (textarea ! name "markup" ! required "required" $ toHtml md, Nothing)

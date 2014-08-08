@@ -33,7 +33,7 @@ page wp = renderPage wp Nothing $ htmlUrlResponse $ renderNewPage wp
 -- instead.
 pageAtRevision :: WikiPage -> Revision -> Handler Sitemap
 pageAtRevision wp r = renderPage wp (Just r) $ htmlUrlResponse err
-    where err = renderNoticePage "Error" $ "Failed to retrieve " <> pageTextName wp <> " at " <> revisionShortId r <> "."
+    where err = renderNoticePage "Error" $ "Failed to retrieve " <> pageNiceName wp <> " at " <> revisionShortId r <> "."
 
 -- |Display a list of all pages
 pages :: Handler Sitemap
@@ -56,7 +56,7 @@ history wp limit = do
       Just events -> renderHist wp events
       Nothing     -> renderNoticePage "Error" $
                       case wp of
-                        Just wp' -> "Failed to retrieve history for " <> pageTextName wp' <> "."
+                        Just wp' -> "Failed to retrieve history for " <> pageNiceName wp' <> "."
                         Nothing  -> "Failed to retrieve history."
 
 -- |Display the diff between the two revisions. If either revision is
@@ -69,7 +69,7 @@ diff wp r1 r2 = do
       Just differences -> renderDiff wp r1 r2 differences
       _                -> err
 
-  where err = renderNoticePage "Error" $ "Failed to retrieve diff for " <> pageTextName wp <> " for " <> revisionShortId r1 <> "–" <> revisionShortId r2 <> "."
+  where err = renderNoticePage "Error" $ "Failed to retrieve diff for " <> pageNiceName wp <> " for " <> revisionShortId r1 <> "–" <> revisionShortId r2 <> "."
 
 -----
 
@@ -88,7 +88,7 @@ renderPage wp r fallback = do
 
 -- |Render a new page, inviting users to create it.
 renderNewPage :: WikiPage -> MkUrl Sitemap -> Html
-renderNewPage wp = renderHtmlPage Nothing (pageTextName wp) $ \mkurl -> do
+renderNewPage wp = renderHtmlPage Nothing (pageNiceName wp) $ \mkurl -> do
                      _ <- "This page does not exist "
                      link' mkurl "Create New Page" "why not create it?" $ Edit wp
 
@@ -106,10 +106,10 @@ renderHist wp commits = renderHtmlPage wp title $ \mkurl -> do
       pre $ code ! A.id "diff" $ T.empty
 
   where title = case wp of
-                  Just wp' -> pageTextName wp' <> " History"
+                  Just wp' -> pageNiceName wp' <> " history"
                   Nothing  -> "Recent Changes"
 
 -- |Display a list of changes.
 renderDiff :: WikiPage -> Revision -> Revision -> [Difference] -> MkUrl Sitemap -> Html
 renderDiff wp r1 r2 thediff = renderHtmlPage (Just wp) thetitle . const . pre . code $ T.diff thediff
-    where thetitle = pageTextName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2
+    where thetitle = pageNiceName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2
