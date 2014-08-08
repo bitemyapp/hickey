@@ -4,7 +4,7 @@ module Store.History where
 import Control.Applicative ((<$>))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.FileStore (TimeRange(..), latest, history, diff)
-import Data.Maybe (isJust, maybeToList)
+import Data.Maybe (mapMaybe, maybeToList)
 import Data.Text (pack)
 import Store.Types
 import Store.Utils
@@ -31,8 +31,7 @@ getHistory fp limit = withFileStore $ \fs -> getHistoryFS fs fp limit
 -- |Alternative version of `getHistory` which takes a file store.
 getHistoryFS :: MonadIO m => FileStore -> Maybe FilePath -> Maybe Int -> m (Maybe [Commit])
 getHistoryFS fs fp limit = liftIO $ hist `onStoreExc` return Nothing
-    where hist = (Just . mlimit . filter isWikiCommit . map fromStoreCommit) <$> history fs (maybeToList fp) (TimeRange Nothing Nothing) Nothing
-          isWikiCommit = isJust . commitTarget
+    where hist = (Just . mlimit . mapMaybe fromStoreCommit) <$> history fs (maybeToList fp) (TimeRange Nothing Nothing) Nothing
           mlimit xs = case limit of
                         Just n  -> take n xs
                         Nothing -> xs

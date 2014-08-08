@@ -11,22 +11,17 @@ module Handler.View
 import Control.Applicative ((<$>))
 import Data.Monoid ((<>))
 import Data.Text (isSuffixOf, splitOn, pack)
-import Data.Time.Format (formatTime)
 import Routes
 import Store
 import Store.Paths
-import System.Locale (defaultTimeLocale)
 import Templates
-import Templates.Utils (link', with)
-import Text.Blaze.Html5 hiding (head, map)
-import Text.Blaze.Html5.Attributes
-import Text.Blaze.Internal (textValue)
+import Templates.Utils (link', hist, ifPresent)
+import Text.Blaze.Html5 (Html, (!), section, h2, pre, code, ul, li)
 import Types
 import Web.Seacat (Handler, MkUrl, askMkUrl, htmlResponse)
 import Web.Seacat.RequestHandler (htmlUrlResponse)
 
 import qualified Templates.Utils             as T
-import qualified Text.Blaze.Html5            as H
 import qualified Text.Blaze.Html5.Attributes as A
 
 -- |Display a page as it is now.
@@ -69,9 +64,10 @@ history wp limit = do
 diff :: WikiPage -> Revision -> Revision -> Handler Sitemap
 diff wp r1 r2 = do
   changelog <- getDiff (wikipage wp) r1 r2
-  case changelog of
-    Just differences -> renderDiff wp r1 r2 differences
-    _                -> htmlUrlResponse err
+  htmlUrlResponse $
+    case changelog of
+      Just differences -> renderDiff wp r1 r2 differences
+      _                -> err
 
   where err = renderNoticePage "Error" $ "Failed to retrieve diff for " <> pageTextName wp <> " for " <> revisionShortId r1 <> "–" <> revisionShortId r2 <> "."
 
@@ -98,58 +94,22 @@ renderNewPage wp = renderHtmlPage Nothing (pageTextName wp) $ \mkurl -> do
 
 -- |Display a list of commits.
 renderHist :: Maybe WikiPage -> [Commit] -> MkUrl Sitemap -> Html
-renderHist wp hist = renderHtmlPage wp title $ \mkurl -> do
+renderHist wp commits = renderHtmlPage wp title $ \mkurl -> do
   section $ do
-    with wp $ const $ h2 $ T.toHtml "Commits"
-    table ! class_ "history" $
-      mapM_ (trow mkurl) hist
+    ifPresent wp $
+      h2 $ T.toHtml "Commits"
 
-  with wp $
-    const $ section $ do
+    hist wp commits mkurl
+
+  ifPresent wp $ section $ do
       h2  $ T.toHtml "Diff"
       pre $ code ! A.id "diff" $ T.empty
 
-  where trow mkurl commit =
-            let revid  = revisionTextId  $ commitRevision commit
-                revid' = revisionShortId $ commitRevision commit
-                when   = commitTime commit
-                who    = commitAuthor commit
-                why    = commitMessage commit
-            in tr $ do
-                 td $ do
-                   h2 $ T.toHtml why
-                   p $ do
-                     H.span ! class_ "author" $ T.toHtml who
-                     T.toHtml " authored at "
-                     H.span ! class_ "when" $ H.toHtml $ formatTime defaultTimeLocale "%R (%F)" when
-                 case wp of
-                   Just wp' -> td $ do
-                     T.link mkurl revid' $ View wp' . Just $ commitRevision commit
-                     compare "r1" revid wp'
-                     compare "r2" revid wp'
-
-                   Nothing  -> do
-                     td $ case commitTarget commit of
-                            Just (wp', Nothing) -> T.link mkurl (pageTextName wp') $ View wp' Nothing
-                            Just (wp', Just fn) -> do
-                              T.link mkurl (pageTextName wp') $ View wp' Nothing
-                              br
-                              T.link mkurl (fileTextName fn) $ File wp' fn Nothing
-
-                     td $ T.link mkurl revid' $ commitLink commit
-
-        title = case wp of
+  where title = case wp of
                   Just wp' -> pageTextName wp' <> " History"
                   Nothing  -> "Recent Changes"
 
-        compare rn revid wp' = td $ H.input ! type_ "radio" ! name (textValue rn) ! value (textValue revid) ! onclick (textValue $ "set" <> rn <> "('" <> pageTextName wp' <> "','" <> revid <> "')")
-
-        commitLink commit = case commitTarget commit of
-                              Just (wp', Nothing) -> View wp'    . Just $ commitRevision commit
-                              Just (wp', Just fn) -> File wp' fn . Just $ commitRevision commit
-
 -- |Display a list of changes.
-renderDiff :: WikiPage -> Revision -> Revision -> [Difference] -> Handler Sitemap
-renderDiff wp r1 r2 thediff = do
-  let thetitle = pageTextName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2
-  htmlUrlResponse . renderHtmlPage (Just wp) thetitle . const . pre . code $ T.diff thediff
+renderDiff :: WikiPage -> Revision -> Revision -> [Difference] -> MkUrl Sitemap -> Html
+renderDiff wp r1 r2 thediff = renderHtmlPage (Just wp) thetitle . const . pre . code $ T.diff thediff
+    where thetitle = pageTextName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2

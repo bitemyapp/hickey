@@ -22,14 +22,12 @@ import qualified Data.FileStore.Types as FS
 
 -- |A commit consists of a revision ID, time of commit, author text
 -- (at least a name, may be an email), summary of changes, and a
--- target. The target is only a Maybe, because of the possibility of
--- out-of-wiki commits doing strange things. We can filter those out
--- of histories, however.
+-- target.
 data Commit = Commit { commitRevision :: Revision
                      , commitTime     :: UTCTime
                      , commitAuthor   :: Text
                      , commitMessage  :: Text
-                     , commitTarget   :: Maybe (WikiPage, Maybe FileName)
+                     , commitTarget   :: (WikiPage, Maybe FileName)
                      }
 
 -- |A difference is a collection of some lines of text, with an
@@ -53,14 +51,15 @@ instance Contents Text where
 
 -- *Conversion functions
 
--- |Turn a FileStore `Revision` into a `Commit`
-fromStoreCommit :: FS.Revision -> Commit
-fromStoreCommit r = Commit { commitRevision = fromStoreRevision r
-                           , commitTime     = revDateTime r
-                           , commitAuthor   = fromStoreAuthor $ revAuthor r
-                           , commitMessage  = pack $ revDescription r
-                           , commitTarget   = target
-                           }
+-- |Turn a FileStore `Revision` into a `Commit`. This is only a maybe
+-- because the target might not be valid.
+fromStoreCommit :: FS.Revision -> Maybe Commit
+fromStoreCommit r =  target <&> \target' -> Commit { commitRevision = fromStoreRevision r
+                                                  , commitTime     = revDateTime r
+                                                  , commitAuthor   = fromStoreAuthor $ revAuthor r
+                                                  , commitMessage  = pack $ revDescription r
+                                                  , commitTarget   = target'
+                                                  }
 
     where target = case revChanges r of
                      [Added fp]    -> toWikiPath $ pack fp
@@ -72,6 +71,8 @@ fromStoreCommit r = Commit { commitRevision = fromStoreRevision r
                             _ -> case splitOn "-files/" fp of
                                    [pagename, filename] -> fmap Just <$> ((,) <$> toWikiPage pagename <*> toFileName filename)
                                    _ -> Nothing
+
+          (<&>) = flip fmap
 
 -- |Turn a FileStore `Revision` into a `Revision`.
 fromStoreRevision :: FS.Revision -> Revision
