@@ -11,8 +11,9 @@ import Handler.Static
 import Handler.View
 import Network.HTTP.Types (StdMethod(..))
 import Routes
+import Templates (renderNoticePage)
 import Web.Seacat (ConfigParser, Handler, SeacatSettings(..), seacat, defaultSettings, redirect)
-import Web.Seacat.RequestHandler (textResponse)
+import Web.Seacat.RequestHandler (htmlUrlResponse)
 
 -- |Start up the web server with default settings.
 main :: IO ()
@@ -20,14 +21,12 @@ main = seacat route error500 settings
     where settings = defaultSettings { _config = Just defaults }
 
 -- |Report 404 errors to the user.
--- TODO: Prettify.
 error404 :: String -> Handler Sitemap
-error404 = textResponse . pack
+error404 = htmlUrlResponse . renderNoticePage "404" . pack
 
 -- |Report 500 errors to the user.
--- TODO: Prettify
 error500 :: String -> Handler Sitemap
-error500 = textResponse . pack
+error500 = htmlUrlResponse . renderNoticePage "500" . pack
 
 -- |Route a request to its handler.
 route :: StdMethod -> Sitemap -> Handler Sitemap
