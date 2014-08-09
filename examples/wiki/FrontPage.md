@@ -1,3 +1,7 @@
+---
+category: DefaultPages
+---
+
 Welcome to the amazing and exciting **Hickey**!
 
 Hickey is a git-backed wiki in Haskell using [Pandoc-flavoured Markdown](http://johnmacfarlane.net/pandoc/demo/example9/pandocs-markdown.html) for formatting.

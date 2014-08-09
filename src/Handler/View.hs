@@ -10,25 +10,30 @@ module Handler.View
 
 import Control.Applicative ((<$>))
 import Control.Monad (liftM)
+import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
-import Data.Text (isSuffixOf, splitOn, pack)
+import Data.Text (isPrefixOf, isSuffixOf, pack, append)
+import Data.Text.Lazy (toStrict)
+import Data.Text.Lazy.Encoding (decodeUtf8)
 import Handler.Utils
 import Routes
 import Store
 import Store.Paths
 import Templates
-import Templates.Utils (link', hist, ifPresent)
+import Templates.Utils (link', hist, ifPresent, catlist)
 import Text.Blaze.Html5 (Html, (!), section, h2, pre, code, ul, li)
+import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Types
-import Web.Seacat (Handler, MkUrl, askMkUrl, htmlResponse)
+import Web.Seacat (Handler, MkUrl, RequestProcessor, askMkUrl, htmlResponse)
 import Web.Seacat.RequestHandler (htmlUrlResponse)
 
+import qualified Data.Text                   as Te
 import qualified Templates.Utils             as T
 import qualified Text.Blaze.Html5.Attributes as A
 
 -- |Display a page as it is now.
 page :: WikiPage -> Handler Sitemap
-page wp = renderPage wp Nothing $ htmlUrlResponse $ renderNewPage wp
+page wp = renderPage wp Nothing $ renderNewPage wp
 
 -- |Display a page as it was at the given revision. If the revision ID
 -- is bad (doesn't exist or predates this page), an error is displayed
@@ -40,13 +45,11 @@ pageAtRevision wp r = renderPage wp (Just r) $ htmlUrlResponse err
 -- |Display a list of all pages
 pages :: Handler Sitemap
 pages = do
-  allpages <- filter (isSuffixOf ".md") <$> map pack <$> listFiles ""
+  allpages <- listpages
   htmlUrlResponse $ renderHtmlPage Nothing "All Pages" $ thehtml allpages
 
   where thehtml allpages mkurl = ul $ mapM_ (pageHtml mkurl) allpages
-        pageHtml mkurl pageName = case toWikiPage . head $ splitOn "." pageName of
-                                    Just wp -> li $ T.link mkurl (pageTextName wp) $ View wp Nothing
-                                    Nothing -> T.empty
+        pageHtml mkurl wp = li $ T.link mkurl (pageTextName wp) $ View wp Nothing
 
 -- |Display all of the commits that have gone into a page, if
 -- given. If not, show all changes globally. Takes an optional limit.
@@ -89,15 +92,30 @@ renderPage wp r fallback = do
   wikiPage <- getStoredFileAt' (wikipage wp) r
   locked   <- isLocked wp
 
+  -- Category pages have a list of their contents at the bottom
+  cattxt <- toStrict . decodeUtf8 . renderHtml <$> catHtml wp mkurl
+
   case wikiPage of
-    Just cntnts -> renderWikiPageAt' wp locked r cntnts plugins fs mkurl >>= htmlResponse
+    Just cntnts -> renderWikiPageAt' wp locked r (cntnts `append` cattxt) plugins fs mkurl >>= htmlResponse
     Nothing     -> fallback
 
 -- |Render a new page, inviting users to create it.
-renderNewPage :: WikiPage -> MkUrl Sitemap -> Html
-renderNewPage wp = renderHtmlPage Nothing (pageNiceName wp) $ \mkurl -> do
-                     _ <- "This page does not exist "
-                     link' mkurl "Create New Page" "why not create it?" $ Edit wp
+renderNewPage :: WikiPage -> Handler Sitemap
+renderNewPage wp = do
+  mkurl   <- askMkUrl
+  cathtml <- catHtml wp mkurl
+
+  htmlUrlResponse $ renderHtmlPage Nothing (pageNiceName wp) $ const $ do
+    T.toHtml "This page does not exist "
+    link' mkurl "Create New Page" "why not create it?" $ Edit wp
+    cathtml
+
+-- |Get a list of the pages in a category
+catHtml :: WikiPage -> MkUrl Sitemap -> RequestProcessor Sitemap Html
+catHtml wp mkurl = if "Category" `isPrefixOf` pageTextName wp
+                   then flip catlist mkurl <$> categoryPages catname
+                   else return T.empty
+    where catname = fromJust . toWikiPage . Te.drop (Te.length "Category") $ pageTextName wp
 
 -- |Display a list of commits.
 renderHist :: Maybe (WikiPage, Bool) -> [Commit] -> MkUrl Sitemap -> Html

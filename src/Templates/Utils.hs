@@ -8,7 +8,7 @@ import Data.Time.Format (formatTime)
 import Routes
 import Store.Types (Commit(..), Difference, Diff(..))
 import System.Locale (defaultTimeLocale)
-import Text.Blaze.Html5 (Html, (!), a, label, fieldset, ol, li, table, tr, td, h2, p, br)
+import Text.Blaze.Html5 (Html, (!), a, label, fieldset, ul, ol, li, table, tr, td, h2, p, br)
 import Text.Blaze.Html5.Attributes (href, title, for, name, type_, required, class_, method, action, enctype, value, onclick)
 import Text.Blaze.Internal (Attribute, Attributable, AttributeValue, textValue)
 import Types
@@ -162,6 +162,16 @@ form' fid target inputs submit err help before after mkurl = do
 
   where renderEle (ele, Just def) = li $ ele ! value (textValue def)
         renderEle (ele, Nothing)  = li ele
+
+-- |Render a category listing
+catlist :: [WikiPage]
+        -- ^The entries
+        -> MkUrl Sitemap -> Html
+catlist entries mkurl = do
+  h2 $ toHtml "Pages in this category"
+  ul $ mapM_ renderEntry entries
+
+  where renderEntry wp = li $ link mkurl (pageTextName wp) $ View wp Nothing
 
 -- *Combinators
 

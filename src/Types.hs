@@ -68,3 +68,6 @@ toFileName f | isFileName f = Just $ FileName f
 
 -- |A plugin has a name, and a path to an executable.
 type Plugin = (String, FilePath)
+
+-- |A category name is just a wiki page name.
+type Category = WikiPage

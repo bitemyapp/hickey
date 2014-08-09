@@ -21,14 +21,12 @@ Features:
 
  - Pages can have file attachments.
 
+ - Automatically-updated category listings.
+
 In addition, *everything* is done through git, the only configuration
 external to that is the repo path: you can clone an entire wiki and
 redeploy elsewhere with a regular `git clone` and starting a new
 instance of Hickey.
-
-Planned:
-
- - Automatically-updated category listings.
 
 Plugins
 -------
@@ -69,11 +67,12 @@ Plugin expansion *is* recursive, so plugins can generate code to be
 expanded by other plugins, but there is a depth limit of 100 to
 prevent infinite loops.
 
-Links
------
+Links & Categories
+------------------
 
-Wikis are all about linking things together, and Hickey provides some
-helpers to make common types of links easier for you.
+Wikis are all about linking things together and organising them, and
+Hickey provides some helpers to make common types of links easier for
+you.
 
 All of these can be used both as a single word (delimited by spaces)
 in the body text of an article, or in a link with an empty target,
@@ -91,6 +90,19 @@ e.g. `[Foo]()`.
 
  - Raw URLs: literal URLS, starting with "http://", "https://", or
    "ftp://", are turned into links automatically.
+
+Categories allow you to group related pages together, and in Hickey
+this is achieved by using Pandoc's YAML front-matter. Simply start
+your document with something like:
+
+    ---
+    category: Foo
+    ---
+
+…and your page will show up in a list on the article CategoryFoo. You
+can specify multiple categories, using the "categories" field, and
+categories can be in a YAML list, or simply separated by spaces with
+(optional) commas.
 
 Examples
 --------
