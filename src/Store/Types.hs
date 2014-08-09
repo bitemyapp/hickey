@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections, OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances, TupleSections, OverloadedStrings #-}
 
 -- |Types for FileStores. The types exported from this module abstract
 -- over the underlying Data.FileStore types.
@@ -17,6 +17,7 @@ import Data.Text (Text, pack, unpack, splitOn)
 import Types
 
 import qualified Data.FileStore.Types as FS
+import qualified Data.Text            as T
 
 -- *Types
 
@@ -48,6 +49,11 @@ data Merge = Merge { mergRevision  :: Revision
 instance Contents Text where
     fromByteString = pack . fromByteString
     toByteString   = toByteString . unpack
+
+-- |Sometimes line-by-line access to a file is desired.
+instance Contents [Text] where
+    fromByteString = T.lines . fromByteString
+    toByteString   = toByteString . T.unlines
 
 -- *Conversion functions
 

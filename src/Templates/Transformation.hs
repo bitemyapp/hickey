@@ -92,7 +92,7 @@ interWiki fs p = liftM (foldl (\p' iwl -> wikilinks (Left iwl) (const True) p') 
             contents <- getStoredFileFS fs "interwiki.conf"
             return $
               case contents of
-                Just txt -> filter (/=("","")) $ map (breakOn " " . strip) $ T.lines txt
+                Just txt -> filter (/=("","")) $ map (breakOn " " . strip) txt
                 Nothing  -> []
 
 -- |Expand bare URLs into actual links. A bare URL is (in regular
