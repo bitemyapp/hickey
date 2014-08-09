@@ -57,6 +57,7 @@ executable hickey
   other-modules:       Handler.Edit
                      , Handler.Special
                      , Handler.Static
+                     , Handler.Utils
                      , Handler.View
                      , Routes
                      , Store

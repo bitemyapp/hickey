@@ -8,10 +8,12 @@ module Handler.Static
     , Handler.Static.static) where
 
 import Control.Applicative ((<$>))
+import Control.Monad (unless)
 import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, pack, strip)
 import Data.Text.Encoding (decodeUtf8)
+import Handler.Utils
 import Network.HTTP.Types.Status (ok200, notFound404)
 import Network.Mime (defaultMimeLookup)
 import Network.Wai (responseLBS)
@@ -41,31 +43,33 @@ fileAtRevision wp fn r = fileAt (attachment wp fn) (Just r) $ pageNiceName wp <>
 files :: WikiPage -> Handler Sitemap
 files wp = do
   allfiles <- listFiles $ attachmentdir wp
-  htmlUrlResponse $ renderHtmlPage (Just wp) thetitle $ thehtml allfiles
+  locked   <- isLocked wp
+  htmlUrlResponse $ renderHtmlPage (Just (wp, locked)) thetitle $ thehtml locked allfiles
 
   where thetitle = pageNiceName wp <> " files"
 
-        thehtml allfiles mkurl = do
+        thehtml locked allfiles mkurl = do
           ul $ mapM_ (fileHtml mkurl) allfiles
-          renderUpload wp Nothing mkurl
+          unless locked $ renderUpload wp Nothing mkurl
 
         fileHtml mkurl fle = let pfle = pack fle
                              in li $ link mkurl pfle $ File wp (fromJust $ toFileName pfle) Nothing
 
 -- |Upload a file.
 upload :: WikiPage -> Handler Sitemap
-upload wp = do
+upload wp = protect wp $ do
   -- Get and verify the required fields
   allfiles <- S.files
   who      <- strip <$> param' "who"  ""
   desc     <- strip <$> param' "desc" ""
+  locked   <- isLocked wp
 
   -- Check stuff
   if who == "" || desc == ""
-  then htmlUrlResponse $ renderHtmlPage (Just wp) "Upload" $ renderUpload wp $ Just "A required field was missing or invalid."
+  then htmlUrlResponse $ renderHtmlPage (Just (wp, locked)) "Upload" $ renderUpload wp $ Just "A required field was missing or invalid."
   else case restrict allfiles of
          ((_, fle):_) -> overwrite (attachment wp $ fname fle) who desc (fileContent fle) >> redirect (Files wp)
-         _            -> htmlUrlResponse $ renderHtmlPage (Just wp) "Upload" $ renderUpload wp $ Just "You need to specify a file."
+         _            -> htmlUrlResponse $ renderHtmlPage (Just (wp, locked)) "Upload" $ renderUpload wp $ Just "You need to specify a file."
 
   where restrict = filter $ not . B.null . fileContent . snd
         fname fle = fromJust . toFileName . decodeUtf8 $ fileName fle

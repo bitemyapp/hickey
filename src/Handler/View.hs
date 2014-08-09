@@ -9,8 +9,10 @@ module Handler.View
     ) where
 
 import Control.Applicative ((<$>))
+import Control.Monad (liftM)
 import Data.Monoid ((<>))
 import Data.Text (isSuffixOf, splitOn, pack)
+import Handler.Utils
 import Routes
 import Store
 import Store.Paths
@@ -50,10 +52,13 @@ pages = do
 -- given. If not, show all changes globally. Takes an optional limit.
 history :: Maybe WikiPage -> Maybe Int -> Handler Sitemap
 history wp limit = do
-  hist <- getHistory (wikipage <$> wp) limit
+  hist   <- getHistory (wikipage <$> wp) limit
+  locked <- case wp of
+             Just wp' -> liftM (\lck -> Just (wp', lck)) $ isLocked wp'
+             Nothing  -> return Nothing
   htmlUrlResponse $
     case hist of
-      Just events -> renderHist wp events
+      Just events -> renderHist locked events
       Nothing     -> renderNoticePage "Error" $
                       case wp of
                         Just wp' -> "Failed to retrieve history for " <> pageNiceName wp' <> "."
@@ -64,9 +69,10 @@ history wp limit = do
 diff :: WikiPage -> Revision -> Revision -> Handler Sitemap
 diff wp r1 r2 = do
   changelog <- getDiff (wikipage wp) r1 r2
+  locked    <- isLocked wp
   htmlUrlResponse $
     case changelog of
-      Just differences -> renderDiff wp r1 r2 differences
+      Just differences -> renderDiff wp locked r1 r2 differences
       _                -> err
 
   where err = renderNoticePage "Error" $ "Failed to retrieve diff for " <> pageNiceName wp <> " for " <> revisionShortId r1 <> "–" <> revisionShortId r2 <> "."
@@ -81,9 +87,10 @@ renderPage wp r fallback = do
   mkurl    <- askMkUrl
   plugins  <- getPlugins
   wikiPage <- getStoredFileAt' (wikipage wp) r
+  locked   <- isLocked wp
 
   case wikiPage of
-    Just cntnts -> renderWikiPageAt' wp r cntnts plugins fs mkurl >>= htmlResponse
+    Just cntnts -> renderWikiPageAt' wp locked r cntnts plugins fs mkurl >>= htmlResponse
     Nothing     -> fallback
 
 -- |Render a new page, inviting users to create it.
@@ -93,23 +100,23 @@ renderNewPage wp = renderHtmlPage Nothing (pageNiceName wp) $ \mkurl -> do
                      link' mkurl "Create New Page" "why not create it?" $ Edit wp
 
 -- |Display a list of commits.
-renderHist :: Maybe WikiPage -> [Commit] -> MkUrl Sitemap -> Html
+renderHist :: Maybe (WikiPage, Bool) -> [Commit] -> MkUrl Sitemap -> Html
 renderHist wp commits = renderHtmlPage wp title $ \mkurl -> do
   section $ do
     ifPresent wp $
       h2 $ T.toHtml "Commits"
 
-    hist wp commits mkurl
+    hist (fst <$> wp) commits mkurl
 
   ifPresent wp $ section $ do
       h2  $ T.toHtml "Diff"
       pre $ code ! A.id "diff" $ T.empty
 
-  where title = case wp of
+  where title = case fst <$> wp of
                   Just wp' -> pageNiceName wp' <> " history"
                   Nothing  -> "Recent Changes"
 
 -- |Display a list of changes.
-renderDiff :: WikiPage -> Revision -> Revision -> [Difference] -> MkUrl Sitemap -> Html
-renderDiff wp r1 r2 thediff = renderHtmlPage (Just wp) thetitle . const . pre . code $ T.diff thediff
+renderDiff :: WikiPage -> Bool -> Revision -> Revision -> [Difference] -> MkUrl Sitemap -> Html
+renderDiff wp locked r1 r2 thediff = renderHtmlPage (Just (wp, locked)) thetitle . const . pre . code $ T.diff thediff
     where thetitle = pageNiceName wp <> " at " <> revisionShortId r1 <> "–" <> revisionShortId r2

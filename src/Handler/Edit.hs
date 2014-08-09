@@ -9,6 +9,7 @@ import Control.Monad (void)
 import Data.Maybe (fromMaybe, fromJust, isJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, strip, replace)
+import Handler.Utils
 import Routes
 import Store
 import Store.Paths
@@ -27,7 +28,7 @@ import qualified Text.Blaze.Html5.Attributes as A
 
 -- |Display an edit form for a page.
 edit :: WikiPage -> Handler Sitemap
-edit wp = do
+edit wp = protect wp $ do
   wikiPage <- getStoredFile  $ wikipage wp
   current  <- latestRevision $ wikipage wp
 
@@ -35,7 +36,7 @@ edit wp = do
 
 -- |Save an edit, possibly resolving a merge in the process.
 commit :: WikiPage -> Handler Sitemap
-commit wp = do
+commit wp = protect wp $ do
   -- Grab the required fields. For all we care, an empty value is the
   -- same as no value at all - so just default them.
   markup   <- replace "\r\n" "\n" . strip <$> param' "markup" ""
@@ -91,7 +92,7 @@ renderEditPage :: WikiPage -> Maybe Revision
                -> Maybe Text
                -- ^Error message
                -> Text -> MkUrl Sitemap -> Html
-renderEditPage wp r msg md = renderHtmlPage (const wp <$> r) ("Edit " <> pageNiceName wp) form
+renderEditPage wp r msg md = renderHtmlPage (const (wp, False) <$> r) ("Edit " <> pageNiceName wp) form
     where form   = form' (Just "edit") target inputs "Save Changes" msg Nothing (Just before) (Just after)
           target = Edit wp
           inputs = [ (textarea ! name "markup" ! required "required" $ toHtml md, Nothing)
