@@ -29,7 +29,6 @@ instance of Hickey.
 Planned:
 
  - Automatically-updated category listings.
- - Syntactic niceties for linking to specific revisions of pages.
 
 Plugins
 -------

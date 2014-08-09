@@ -110,7 +110,7 @@ bareURLs p = foldl (\p' proto -> wikilinks (Left (proto, proto <> ":{}")) (isPre
 --
 -- Matches can be further refined by the supplied predicate function
 -- which takes (for prefix links) the text after the prefix and (for
--- internal links) the entire text.
+-- internal links) the page name.
 wikilinks :: Either (Text, Text) (MkUrl Sitemap) -> (Text -> Bool) -> Pandoc -> Pandoc
 wikilinks urls pred = walk empties . walk ww
     where ww (Plain is)          = Plain $ map expand is
@@ -152,21 +152,20 @@ wikilinks urls pred = walk empties . walk ww
           -- Turn text into links. If strict is True, require
           -- non-prefix links to be CamelCased as well as valid page
           -- names.
-          link strict s r = let s' = pack s
-                            in case urls of
-                                 Left (pref, url) ->
-                                   let (p, l) = breakOn ":" s'
-                                   in if p == pref && T.length l > 0 && pred (T.drop 1 l)
-                                      then Link [Str s] (elink url $ T.drop 1 l, s)
-                                      else r
+          link strict = case urls of
+                          Left (pref, url) -> link' ":" (econds pref)   $ elink url
+                          Right mkurl      -> link' "/" (iconds strict) $ ilink mkurl
 
-                                 Right mkurl ->
-                                   if isPageName s' && (not strict || isCCased s) && pred s'
-                                   then Link [Str s] (ilink mkurl s, s)
-                                   else r
+          -- Handle a prefix/link text pair
+          link' chr conds tourl txt fallback = let (pref, suff) = T.drop 1 <$> breakOn chr (pack txt)
+                                               in if and $ conds pref suff
+                                                  then Link [Str txt] (tourl pref suff, txt)
+                                                  else fallback
 
-          -- Internal link
-          ilink mkurl s = unpack $ mkurl (View (fromJust . toWikiPage . pack $ s) Nothing) []
+          -- Internal and external link conditions
+          iconds strict p r = [isPageName p, not strict || isCCased (unpack p), r == "" || isRevisionId r, pred p]
+          econds pref p l   = [p == pref, T.length l > 0, pred l]
 
-          -- External link
-          elink url s = unpack $ replace "{}" s url
+          -- Internal and external link constructors
+          ilink mkurl s r = unpack $ mkurl (View (fromJust $ toWikiPage s) $ toRevision r) []
+          elink url _ s   = unpack $ replace "{}" s url
