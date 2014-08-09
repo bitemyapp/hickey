@@ -10,12 +10,13 @@ import Store.Types (Commit(..), Difference, Diff(..))
 import System.Locale (defaultTimeLocale)
 import Text.Blaze.Html5 (Html, (!), a, label, fieldset, ol, li, table, tr, td, h2, p, br)
 import Text.Blaze.Html5.Attributes (href, title, for, name, type_, required, class_, method, action, enctype, value, onclick)
-import Text.Blaze.Internal (textValue)
+import Text.Blaze.Internal (Attribute, Attributable, AttributeValue, textValue)
 import Types
 import Web.Seacat (MkUrl)
 
-import qualified Data.Text        as Te
-import qualified Text.Blaze.Html5 as H
+import qualified Data.Text                   as Te
+import qualified Text.Blaze.Html5            as H
+import qualified Text.Blaze.Html5.Attributes as A
 
 -- *Simple elements
 
@@ -123,10 +124,12 @@ hist wp commits mkurl = table ! class_ "history" $ mapM_ trow commits
 
 -- |Simpler version of `form'` with no excess HTML.
 form :: Sitemap -> [(Html, Maybe Text)] -> Text -> Maybe Text -> Maybe Text -> MkUrl Sitemap -> Html
-form target inputs submit err help = form' target inputs submit err help Nothing Nothing
+form target inputs submit err help = form' Nothing target inputs submit err help Nothing Nothing
 
 -- |Render a POST form, with optional error text, explanation text, and extra HTML.
-form' :: Sitemap
+form' :: Maybe Text
+      -- ^Optional form ID
+      -> Sitemap
       -- ^Target
       -> [(Html, Maybe Text)]
       -- ^Input elements, with optional default values
@@ -143,12 +146,12 @@ form' :: Sitemap
       -- ^Possible HTML in the form, after the submit button. Note that
       -- this is placed in a list context.
       -> MkUrl Sitemap -> Html
-form' target inputs submit err help before after mkurl = do
+form' fid target inputs submit err help before after mkurl = do
   with err $ (H.div ! class_ "error") . toHtml
 
   extract before
 
-  H.form ! method "post" ! action (textValue $ mkurl target []) ! enctype "multipart/form-data" $
+  H.form ! method "post" ! action (textValue $ mkurl target []) ! enctype "multipart/form-data" !?? (A.id, fid) $
     fieldset $
       ol $ do
         mapM_ renderEle inputs
@@ -191,3 +194,8 @@ ifPresent Nothing  _ = empty
 ifNotPresent :: Maybe a -> Html -> Html
 ifNotPresent (Just _) _ = empty
 ifNotPresent Nothing  h = h
+
+-- |Set an attribute if a Maybe is Just.
+(!??) :: Attributable h => h -> (AttributeValue -> Attribute, Maybe Text) -> h
+h !?? (a, Just v)  = h ! a (textValue v)
+h !?? (_, Nothing) = h
