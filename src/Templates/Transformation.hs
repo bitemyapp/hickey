@@ -12,7 +12,8 @@ import Control.Monad ((>=>), liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.FileStore (FileStore)
 import Data.Maybe (isJust, fromJust)
-import Data.Text (Text, pack, unpack, replace, split, strip, breakOn)
+import Data.Monoid ((<>))
+import Data.Text (Text, pack, unpack, replace, split, strip, breakOn, isPrefixOf)
 import Routes
 import Store.Retrieve (getStoredFileFS, doesFileExistFS)
 import Store.Paths
@@ -36,6 +37,7 @@ postprocess plugins fs mkurl = foldl1 (>=>) [ expandPlugins plugins
                                             , return . wikiWords mkurl
                                             , broken fs mkurl
                                             , interWiki fs
+                                            , return . bareURLs
                                             ]
 
 -- |Expand plugins iteratively until the AST settles (with a depth
@@ -62,7 +64,7 @@ expandPlugins = expandPlugins' (100 :: Integer)
 
 -- |Autolink WikiWords and empty links
 wikiWords :: MkUrl Sitemap -> Pandoc -> Pandoc
-wikiWords mkurl = wikilinks $ Right mkurl
+wikiWords mkurl = wikilinks (Right mkurl) $ const True
 
 -- |Apply a "broken" class to all internal broken links.
 broken :: (Functor m, MonadIO m) => FileStore -> MkUrl Sitemap -> Pandoc -> m Pandoc
@@ -85,7 +87,7 @@ broken fs mkurl = walkM bork
 -- Inter-wiki links are of the form prefix:link or [prefix:link](),
 -- where the prefix identifies the wiki to link to.
 interWiki :: (Functor m, MonadIO m) => FileStore -> Pandoc -> m Pandoc
-interWiki fs p = liftM (foldl (\p' iwl -> wikilinks (Left iwl) p') p) getInterWikiLinks
+interWiki fs p = liftM (foldl (\p' iwl -> wikilinks (Left iwl) (const True) p') p) getInterWikiLinks
     where getInterWikiLinks = do
             contents <- getStoredFileFS fs "interwiki.conf"
             return $
@@ -93,11 +95,24 @@ interWiki fs p = liftM (foldl (\p' iwl -> wikilinks (Left iwl) p') p) getInterWi
                 Just txt -> filter (/=("","")) $ map (breakOn " " . strip) $ T.lines txt
                 Nothing  -> []
 
+-- |Expand bare URLs into actual links. A bare URL is (in regular
+-- text) a string starting with http://, https://, or ftp://
+-- containing no spaces, and may contain spaces in link tags.
+--
+-- This re-uses the inter-wiki linking machinery.
+bareURLs :: Pandoc -> Pandoc
+bareURLs p = foldl (\p' proto -> wikilinks (Left (proto, proto <> ":{}")) (isPrefixOf "//") p') p protocols
+    where protocols = ["http", "https", "ftp"]
+
 -- |Expand wiki links (including those in empty links, like
 -- `[Git]()`), with a possible prefix. If the prefix is not given, use
 -- the supplied url making function to construct internal links.
-wikilinks :: Either (Text, Text) (MkUrl Sitemap) -> Pandoc -> Pandoc
-wikilinks urls = walk empties . walk ww
+--
+-- Matches can be further refined by the supplied predicate function
+-- which takes (for prefix links) the text after the prefix and (for
+-- internal links) the entire text.
+wikilinks :: Either (Text, Text) (MkUrl Sitemap) -> (Text -> Bool) -> Pandoc -> Pandoc
+wikilinks urls pred = walk empties . walk ww
     where ww (Plain is)          = Plain $ map expand is
           ww (Para is)           = Para  $ map expand is
           ww (DefinitionList ds) = DefinitionList $ map (first $ map expand) ds
@@ -137,17 +152,18 @@ wikilinks urls = walk empties . walk ww
           -- Turn text into links. If strict is True, require
           -- non-prefix links to be CamelCased as well as valid page
           -- names.
-          link strict s r = case urls of
-                              Left (pref, url) ->
-                                let (p, l) = breakOn ":" $ pack s
-                                in if p == pref
-                                   then Link [Str s] (elink url $ T.drop 1 l, s)
-                                   else r
+          link strict s r = let s' = pack s
+                            in case urls of
+                                 Left (pref, url) ->
+                                   let (p, l) = breakOn ":" s'
+                                   in if p == pref && T.length l > 0 && pred (T.drop 1 l)
+                                      then Link [Str s] (elink url $ T.drop 1 l, s)
+                                      else r
 
-                              Right mkurl ->
-                                if isPageName (pack s) && (not strict || isCCased s)
-                                then Link [Str s] (ilink mkurl s, s)
-                                else r
+                                 Right mkurl ->
+                                   if isPageName s' && (not strict || isCCased s) && pred s'
+                                   then Link [Str s] (ilink mkurl s, s)
+                                   else r
 
           -- Internal link
           ilink mkurl s = unpack $ mkurl (View (fromJust . toWikiPage . pack $ s) Nothing) []
