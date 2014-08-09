@@ -100,7 +100,9 @@ applyHeaderAndFooter wp thetitle thehtml mkurl = docTypeHtml $ do
   H.head $ do
    H.title $ toHtml thetitle
    H.link ! rel "stylesheet" ! type_ "text/css" ! href (sfile "style.css")
-   script ! type_ "text/javascript" ! src (sfile "wiki.js") $ T.empty
+   scripts [ sfile "wiki.js"
+           , "http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+           ]
 
   body $ do
     header $ do
@@ -121,3 +123,5 @@ applyHeaderAndFooter wp thetitle thehtml mkurl = docTypeHtml $ do
                     li $ T.link mkurl "Files"   $ Files   wikiPage
 
         sfile fn = textValue $ flip mkurl [] $ Static . fromJust . toFileName $ fn
+
+        scripts = mapM_ $ \uri -> script ! type_ "text/javascript" ! src uri $ T.empty

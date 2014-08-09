@@ -9,7 +9,7 @@ import Data.Default (def)
 import Templates.Utils (toHtml)
 import Text.Blaze.Html5 (Html, (!), aside, nav, h1)
 import Text.Pandoc.Definition (Pandoc)
-import Text.Pandoc.Options (ReaderOptions(..), WriterOptions(..))
+import Text.Pandoc.Options (ReaderOptions(..), WriterOptions(..), HTMLMathMethod(..))
 
 import qualified Text.Blaze.Internal          as B
 import qualified Text.Blaze.Html5.Attributes  as A
@@ -22,9 +22,10 @@ readerOptions = def
 
 -- |Options used for the writer. This does NOT include table of contents generation.
 writerOptions :: WriterOptions
-writerOptions = def { writerSectionDivs = True
-                    , writerHtml5       = True
-                    , writerHighlight   = True
+writerOptions = def { writerSectionDivs    = True
+                    , writerHtml5          = True
+                    , writerHighlight      = True
+                    , writerHTMLMathMethod = MathJax "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
                     }
 
 -- |Parse some Markdown. This does no pre- or post-processing.
