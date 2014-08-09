@@ -104,6 +104,18 @@ can specify multiple categories, using the "categories" field, and
 categories can be in a YAML list, or simply separated by spaces with
 (optional) commas.
 
+Locked Articles
+---------------
+
+Hickey doesn't have user accounts, store the IP of editors, or even
+force people to use a consistent handle when saving changes. Thus, if
+you want to expose your Hickey-powered wiki to a network not under
+your control (whether that's a good idea or not is a whole different
+kettle of fish), you can make articles read-only by adding their name
+(one per line) to the file "locked.conf" in the repository root.
+
+You can also lock all articles by adding "*" to the file.
+
 Examples
 --------
 
