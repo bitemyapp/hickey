@@ -19,7 +19,7 @@ pageNiceName wp = strip . pack $ subRegex regex (unpack $ pageTextName wp) " \\0
 
 -- |Check if some text is a valid page name
 isPageName :: Text -> Bool
-isPageName = T.all isAlphaNum
+isPageName t = T.all isAlphaNum t && T.length t > 1
 
 -- |Convert some text to a page, if valid.
 toWikiPage :: Text -> Maybe WikiPage
@@ -38,7 +38,7 @@ revisionShortId = T.take 7 . revisionTextId
 
 -- |Check if some text is a valid revision id
 isRevisionId :: Text -> Bool
-isRevisionId = T.all isHexDigit
+isRevisionId t = T.all isHexDigit t && T.length t > 0
 
 -- |Convert some text to a revision, if valid.
 toRevision :: Text -> Maybe Revision
