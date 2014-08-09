@@ -69,21 +69,28 @@ Plugin expansion *is* recursive, so plugins can generate code to be
 expanded by other plugins, but there is a depth limit of 100 to
 prevent infinite loops.
 
-Inter-wiki Links
-----------------
+Links
+-----
 
-Wikis are all about linking things together, but linking to other
-wikis typically requires you to use a full URL to the article you want
-to link to. Some wikis offer a shorthand, called inter-wiki linking,
-where you associate with an external wiki a prefix, and then you can
-link to articles on it in exactly the same way as you link to internal
-articles, but with the addition of adding on the defined prefix.
+Wikis are all about linking things together, and Hickey provides some
+helpers to make common types of links easier for you.
 
-Hickey stores inter-wiki link configuration in the interwiki.conf file
-in the root of the repository. Wikipedia is included as an
-example. When rendering, the `{}` is replaced with the link target
-(minus the prefix), allowing you to define links like `wikipedia:Foo`,
-or `[wikipedia:List of Lists]()`, which will work as you expect.
+All of these can be used both as a single word (delimited by spaces)
+in the body text of an article, or in a link with an empty target,
+e.g. `[Foo]()`.
+
+ - WikiWords: just use the page name to link to other articles on the
+   wiki (caveat: in regular text the link must be CamelCased, to
+   disambiguate from other words).
+
+ - Page revision: use `pagename/revisionid` to link to a specific
+   revision of a page.
+
+ - Inter-wiki links: link to an external wiki, configured in
+   interwiki.conf, with `prefix:pagename`.
+
+ - Raw URLs: literal URLS, starting with "http://", "https://", or
+   "ftp://", are turned into links automatically.
 
 Examples
 --------
