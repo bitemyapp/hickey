@@ -20,6 +20,7 @@ import Store.Paths
 import System.Process (readProcess)
 import Templates.MarkdownToHtml (readMarkdown)
 import Text.Pandoc.Definition (Pandoc(..), Block(..), Inline(..))
+import Text.Pandoc.Generic
 import Text.Pandoc.Walk
 import Text.Regex (mkRegex, matchRegex, matchRegexAll)
 import Types
@@ -117,30 +118,20 @@ bareURLs p = foldl (\p' proto -> wikilinks (Left (proto, proto <> ":{}")) (isPre
 -- which takes (for prefix links) the text after the prefix and (for
 -- internal links) the page name.
 wikilinks :: Either (Text, Text) (MkUrl Sitemap) -> (Text -> Bool) -> Pandoc -> Pandoc
-wikilinks urls pred = walk empties . walk ww
-    where ww (Plain is)          = Plain $ concatMap expand is
-          ww (Para is)           = Para  $ concatMap expand is
-          ww (DefinitionList ds) = DefinitionList $ map (first $ concatMap expand) ds
-          ww (Header n a is)     = Header n a $ concatMap expand is
-          ww (Table is as ds tcs tccs) = Table (concatMap expand is) as ds tcs tccs
-          ww b = b
+wikilinks urls pred = walk empties . bottomUp ww
+    where ww (Str s : xs) = case matchRegexAll trailingPunct s of
+                              Just (txt, punct, _, _) -> link True txt (Str txt) : Str punct : xs
+                              Nothing -> link True s (Str s) : xs
 
-          -- Attempt to split the string into a text/punctuation
-          -- section, and only try to match a link on the text part.
-          expand r@(Str s) = case matchRegexAll trailingPunct s of
-                               Just (txt, punct, _, _) -> [link True txt $ Str txt, Str punct]
-                               Nothing -> [link True s r]
+          -- Link titles also get wikiwords expanded in them,
+          -- obviously we don't want this, and so we need to unmangle
+          -- them.
+          ww (Link is info : xs) = Link (unmangle is) info : xs
+          ww a = a
 
-          expand (Emph is)        = [Emph        $ concatMap expand is]
-          expand (Strong is)      = [Strong      $ concatMap expand is]
-          expand (Strikeout is)   = [Strikeout   $ concatMap expand is]
-          expand (Superscript is) = [Superscript $ concatMap expand is]
-          expand (Subscript is)   = [Subscript   $ concatMap expand is]
-          expand (SmallCaps is)   = [SmallCaps   $ concatMap expand is]
-          expand (Quoted q is)    = [Quoted q    $ concatMap expand is]
-          expand (Cite cs is)     = [Cite cs     $ concatMap expand is]
-          expand (Span a is)      = [Span a      $ concatMap expand is]
-          expand i = [i]
+          unmangle (Link [str] _ : xs) = str : unmangle xs
+          unmangle (x : xs) = x : unmangle xs
+          unmangle [] = []
 
           empties r@(Link strs ("", title)) | plainText strs = link False (catText strs) r
           empties i = i
