@@ -11,6 +11,7 @@ import Control.Arrow (first)
 import Control.Monad ((>=>), liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.FileStore (FileStore)
+import Data.Foldable (foldMap)
 import Data.Maybe (isJust, fromJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, pack, unpack, replace, split, strip, breakOn, isPrefixOf)
@@ -141,16 +142,14 @@ wikilinks urls pred = walk empties . bottomUp ww
           isCCased = isJust . matchRegex regex
           regex    = mkRegex "([A-Z]+[a-z]+){2,}"
 
-          plainText [Str _]    = True
-          plainText [Space]    = True
-          plainText (Space:ss) = plainText ss
-          plainText (Str s:ss) = plainText ss
-          plainText _          = False
+          plainText = all $ \i -> case i of
+                                   Str _ -> True
+                                   Space -> True
+                                   _     -> False
 
-          catText [Str s]    = s
-          catText [Space]    = " "
-          catText (Space:ss) = ' ' : catText ss
-          catText (Str s:ss) = s ++ catText ss
+          catText = foldMap $ \i -> case i of
+                                     Str s -> s
+                                     Space -> " "
 
           -- Turn text into links. If strict is True, require
           -- non-prefix links to be CamelCased as well as valid page
