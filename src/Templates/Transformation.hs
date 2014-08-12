@@ -119,12 +119,11 @@ bareURLs p = foldl (\p' proto -> wikilinks (Left (proto, proto <> ":{}")) (isPre
 -- which takes (for prefix links) the text after the prefix and (for
 -- internal links) the page name.
 wikilinks :: Either (Text, Text) (MkUrl Sitemap) -> (Text -> Bool) -> Pandoc -> Pandoc
-wikilinks urls pred = walk empties . everywhereBut (mkQ False isLink) (mkT ww)
+wikilinks urls pred = walk empties . everywhereBut (mkQ False isImgLink) (mkT ww)
     where ww (Str s : xs) = case matchRegexAll trailingPunct s of
                               Just (txt, punct, _, _) -> link True txt (Str txt) : Str punct : xs
                               Nothing -> link True s (Str s) : xs
           ww a = a
-
 
           empties r@(Link strs ("", title)) | all plainText strs = link False (catText strs) r
           empties i = i
@@ -134,7 +133,7 @@ wikilinks urls pred = walk empties . everywhereBut (mkQ False isLink) (mkT ww)
           isCCased = isJust . matchRegex regex
           regex    = mkRegex "([A-Z]+[a-z]+){2,}"
 
-          isLink         = hasConstr [Link empty empty] :: Inline -> Bool
+          isImgLink      = hasConstr [Link empty empty, Image empty empty] :: Inline -> Bool
           plainText      = hasConstr [Str empty, Space]
           hasConstr ds i = toConstr i `elem` map toConstr ds
 
