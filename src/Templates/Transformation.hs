@@ -12,6 +12,7 @@ import Control.Monad ((>=>), liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.FileStore (FileStore)
 import Data.Foldable (foldMap)
+import Data.Generics (everywhereBut, mkQ, mkT, toConstr, empty)
 import Data.Maybe (isJust, fromJust)
 import Data.Monoid ((<>))
 import Data.Text (Text, pack, unpack, replace, split, strip, breakOn, isPrefixOf)
@@ -21,7 +22,6 @@ import Store.Paths
 import System.Process (readProcess)
 import Templates.MarkdownToHtml (readMarkdown)
 import Text.Pandoc.Definition (Pandoc(..), Block(..), Inline(..))
-import Text.Pandoc.Generic
 import Text.Pandoc.Walk
 import Text.Regex (mkRegex, matchRegex, matchRegexAll)
 import Types
@@ -119,22 +119,14 @@ bareURLs p = foldl (\p' proto -> wikilinks (Left (proto, proto <> ":{}")) (isPre
 -- which takes (for prefix links) the text after the prefix and (for
 -- internal links) the page name.
 wikilinks :: Either (Text, Text) (MkUrl Sitemap) -> (Text -> Bool) -> Pandoc -> Pandoc
-wikilinks urls pred = walk empties . bottomUp ww
+wikilinks urls pred = walk empties . everywhereBut (mkQ False isLink) (mkT ww)
     where ww (Str s : xs) = case matchRegexAll trailingPunct s of
                               Just (txt, punct, _, _) -> link True txt (Str txt) : Str punct : xs
                               Nothing -> link True s (Str s) : xs
-
-          -- Link titles also get wikiwords expanded in them,
-          -- obviously we don't want this, and so we need to unmangle
-          -- them.
-          ww (Link is info : xs) = Link (unmangle is) info : xs
           ww a = a
 
-          unmangle (Link [str] _ : xs) = str : unmangle xs
-          unmangle (x : xs) = x : unmangle xs
-          unmangle [] = []
 
-          empties r@(Link strs ("", title)) | plainText strs = link False (catText strs) r
+          empties r@(Link strs ("", title)) | all plainText strs = link False (catText strs) r
           empties i = i
 
           trailingPunct = mkRegex "[\\.,!?\"':;-]+$"
@@ -142,10 +134,9 @@ wikilinks urls pred = walk empties . bottomUp ww
           isCCased = isJust . matchRegex regex
           regex    = mkRegex "([A-Z]+[a-z]+){2,}"
 
-          plainText = all $ \i -> case i of
-                                   Str _ -> True
-                                   Space -> True
-                                   _     -> False
+          isLink         = hasConstr [Link empty empty] :: Inline -> Bool
+          plainText      = hasConstr [Str empty, Space]
+          hasConstr ds i = toConstr i `elem` map toConstr ds
 
           catText = foldMap $ \i -> case i of
                                      Str s -> s
