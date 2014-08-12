@@ -82,6 +82,7 @@ hist :: Maybe WikiPage -> [Commit] -> MkUrl Sitemap -> Html
 hist wp commits mkurl = table ! class_ "history" $ mapM_ trow commits
     where trow commit = let revid  = revisionTextId  $ commitRevision commit
                             revid' = revisionShortId $ commitRevision commit
+                            target = commitTarget  commit
                             when   = commitTime    commit
                             who    = commitAuthor  commit
                             why    = commitMessage commit
@@ -96,7 +97,9 @@ hist wp commits mkurl = table ! class_ "history" $ mapM_ trow commits
 
                           -- Display page/file if there is no specific page.
                           ifNotPresent wp $ td $
-                            let (wp', fn) = commitTarget commit
+                            let (wp', fn) = case target of
+                                              View wp' _    -> (wp', Nothing)
+                                              File wp' fn _ -> (wp', Just fn)
                             in do
                               -- Always link to the page.
                               link mkurl (pageTextName wp') $ View wp' Nothing
@@ -107,10 +110,7 @@ hist wp commits mkurl = table ! class_ "history" $ mapM_ trow commits
                                 link mkurl (fileTextName fn') $ File wp' fn' Nothing
 
                           -- Link to revision.
-                          td $ link mkurl revid' $
-                            case commitTarget commit of
-                              (wp', Just fn) -> File wp' fn . Just $ commitRevision commit
-                              (wp', Nothing) -> View wp'    . Just $ commitRevision commit
+                          td $ link mkurl revid' target
 
                           -- If this is about a specific page, display comparison radios.
                           with wp $ \wp' -> do

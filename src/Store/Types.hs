@@ -14,6 +14,7 @@ import Data.FileStore (Diff(..), revAuthor, revChanges, revDateTime, revDescript
 import Data.FileStore.Types (Author(..), Change(..), Contents(..), FileStore, RevisionId, UTCTime)
 import Data.Maybe (fromJust)
 import Data.Text (Text, pack, unpack, splitOn)
+import Routes
 import Types
 
 import qualified Data.FileStore.Types as FS
@@ -23,12 +24,12 @@ import qualified Data.Text            as T
 
 -- |A commit consists of a revision ID, time of commit, author text
 -- (at least a name, may be an email), summary of changes, and a
--- target.
+-- target - which is a link to the changed file.
 data Commit = Commit { commitRevision :: Revision
                      , commitTime     :: UTCTime
                      , commitAuthor   :: Text
                      , commitMessage  :: Text
-                     , commitTarget   :: (WikiPage, Maybe FileName)
+                     , commitTarget   :: Sitemap
                      }
 
 -- |A difference is a collection of some lines of text, with an
@@ -64,7 +65,7 @@ fromStoreCommit r =  target <&> \target' -> Commit { commitRevision = fromStoreR
                                                   , commitTime     = revDateTime r
                                                   , commitAuthor   = fromStoreAuthor $ revAuthor r
                                                   , commitMessage  = pack $ revDescription r
-                                                  , commitTarget   = target'
+                                                  , commitTarget   = target' $ Just (fromStoreRevision r)
                                                   }
 
     where target = case revChanges r of
@@ -73,9 +74,9 @@ fromStoreCommit r =  target <&> \target' -> Commit { commitRevision = fromStoreR
                      _             -> Nothing
 
           toWikiPath fp = case splitOn ".md" fp of
-                            [pagename, ""] -> (, Nothing) <$> toWikiPage pagename
+                            [pagename, ""] -> View <$> toWikiPage pagename
                             _ -> case splitOn "-files/" fp of
-                                   [pagename, filename] -> fmap Just <$> ((,) <$> toWikiPage pagename <*> toFileName filename)
+                                   [pagename, filename] -> File <$> toWikiPage pagename <*> toFileName filename
                                    _ -> Nothing
 
           (<&>) = flip fmap
