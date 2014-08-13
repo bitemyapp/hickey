@@ -49,22 +49,22 @@ postprocess plugins fs mkurl = foldl1 (>=>) [ expandPlugins plugins
 -- |Expand plugins recursively until the AST settles (with a depth
 -- limit to prevent infinite loops)
 expandPlugins :: (Functor m, MonadIO m) => [Plugin] -> Pandoc -> m Pandoc
-expandPlugins = expandPlugins' (100 :: Int)
-        -- If the limit is hit, or there are no plugins, halt.
-  where expandPlugins' 0 _  p = return p
-        expandPlugins' _ [] p = return p
+expandPlugins []      = return
+expandPlugins plugins = expandPlugins' (100 :: Int)
+        -- If the limit is hit, halt.
+  where expandPlugins' 0 p = return p
 
         -- Otherwise, try expanding.
-        expandPlugins' n plugins p = do
-          expanded <- walkM (expandOnce plugins) p
+        expandPlugins' n p = do
+          expanded <- walkM expandOnce p
           if p == expanded
           then return p
-          else expandPlugins' (n - 1) plugins expanded
+          else expandPlugins' (n - 1) expanded
 
-        expandOnce plugins cb@(CodeBlock a@(_, [ty], _) s) = case lookup ty plugins of
-                                                               Just plugin -> execPlugin plugin a s
-                                                               Nothing     -> return cb
-        expandOnce _ b = return b
+        expandOnce cb@(CodeBlock a@(_, [ty], _) s) = case lookup ty plugins of
+                                                       Just plugin -> execPlugin plugin a s
+                                                       Nothing     -> return cb
+        expandOnce b = return b
 
         -- Execute the plugin, with the block contents as stdin, and
         -- render the stdout.
