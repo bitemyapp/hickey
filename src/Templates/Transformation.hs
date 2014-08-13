@@ -46,13 +46,15 @@ postprocess plugins fs mkurl = foldl1 (>=>) [ expandPlugins plugins
 
 -- *Individual transformations
 
--- |Expand plugins iteratively until the AST settles (with a depth
+-- |Expand plugins recursively until the AST settles (with a depth
 -- limit to prevent infinite loops)
 expandPlugins :: (Functor m, MonadIO m) => [Plugin] -> Pandoc -> m Pandoc
-expandPlugins = expandPlugins' (100 :: Integer)
-
-  where expandPlugins' 0 _ p  = return p
+expandPlugins = expandPlugins' (100 :: Int)
+        -- If the limit is hit, or there are no plugins, halt.
+  where expandPlugins' 0 _  p = return p
         expandPlugins' _ [] p = return p
+
+        -- Otherwise, try expanding.
         expandPlugins' n plugins p = do
           expanded <- walkM (expandOnce plugins) p
           if p == expanded
@@ -60,10 +62,12 @@ expandPlugins = expandPlugins' (100 :: Integer)
           else expandPlugins' (n - 1) plugins expanded
 
         expandOnce plugins cb@(CodeBlock a@(_, [ty], _) s) = case lookup ty plugins of
-                                                             Just plugin -> execPlugin plugin a s
-                                                             Nothing     -> return cb
+                                                               Just plugin -> execPlugin plugin a s
+                                                               Nothing     -> return cb
         expandOnce _ b = return b
 
+        -- Execute the plugin, with the block contents as stdin, and
+        -- render the stdout.
         execPlugin plugin a s = do
           Pandoc _ blocks <- readMarkdown <$> liftIO (readProcess plugin [] s)
           return $ Div a blocks
