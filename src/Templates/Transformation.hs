@@ -69,7 +69,7 @@ expandPlugins plugins = expandPlugins' (100 :: Int)
         -- Execute the plugin, with the block contents as stdin, and
         -- render the stdout.
         execPlugin plugin a s = do
-          Pandoc _ blocks <- readMarkdown <$> liftIO (readProcess plugin [] s)
+          Pandoc _ blocks <- liftIO $ readMarkdown <$> readProcess plugin [] s
           return $ Div a blocks
 
 -- |Autolink WikiWords and empty links
