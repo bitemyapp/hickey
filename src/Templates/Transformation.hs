@@ -99,11 +99,8 @@ broken fs mkurl = walkM bork
 interWiki :: (Functor m, MonadIO m) => FileStore -> Pandoc -> m Pandoc
 interWiki fs p = liftM (foldl (flip wikilinks) p) getInterWikiLinks
     where getInterWikiLinks = do
-            contents <- getStoredFileFS fs "interwiki.conf"
-            return $
-              case contents of
-                Just txt -> unzipWith External [breakOn " " t | t <- filter (not . T.null) $ map strip txt]
-                Nothing  -> []
+            contents <- fromMaybe [] <$> getStoredFileFS fs "interwiki.conf"
+            return $ unzipWith External [breakOn " " t | t <- filter (not . T.null) $ map strip contents]
 
 -- |Expand bare URLs into actual links. A bare URL is (in regular
 -- text) a string starting with http://, https://, or ftp://
