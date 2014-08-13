@@ -7,14 +7,13 @@ module Templates.Transformation
     ) where
 
 import Control.Applicative ((<$>))
-import Control.Arrow (first)
 import Control.Monad ((>=>), liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Data (Data)
 import Data.FileStore (FileStore)
 import Data.Foldable (foldMap)
 import Data.Generics (everywhereBut, mkQ, mkT, toConstr, empty)
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, fromMaybe)
 import Data.Monoid ((<>))
 import Data.Text (Text, pack, unpack, replace, split, strip, breakOn, isPrefixOf)
 import Routes
@@ -30,6 +29,8 @@ import Web.Seacat (MkUrl)
 
 import qualified Data.Text as T
 
+-- *Batch transformations
+
 -- |Turn the input text into a format suitable for parsing.
 preprocess :: Text -> String
 preprocess = unpack . replace "\r\n" "\n"
@@ -42,6 +43,8 @@ postprocess plugins fs mkurl = foldl1 (>=>) [ expandPlugins plugins
                                             , interWiki fs
                                             , return . bareURLs
                                             ]
+
+-- *Individual transformations
 
 -- |Expand plugins iteratively until the AST settles (with a depth
 -- limit to prevent infinite loops)
@@ -67,7 +70,7 @@ expandPlugins = expandPlugins' (100 :: Integer)
 
 -- |Autolink WikiWords and empty links
 wikiWords :: MkUrl Sitemap -> Pandoc -> Pandoc
-wikiWords mkurl = wikilinks (Right mkurl) $ const True
+wikiWords mkurl = wikilinks $ Internal mkurl
 
 -- |Apply a "broken" class to all internal broken links.
 broken :: (Functor m, MonadIO m) => FileStore -> MkUrl Sitemap -> Pandoc -> m Pandoc
@@ -90,12 +93,12 @@ broken fs mkurl = walkM bork
 -- Inter-wiki links are of the form prefix:link or [prefix:link](),
 -- where the prefix identifies the wiki to link to.
 interWiki :: (Functor m, MonadIO m) => FileStore -> Pandoc -> m Pandoc
-interWiki fs p = liftM (foldl (\p' iwl -> wikilinks (Left iwl) (const True) p') p) getInterWikiLinks
+interWiki fs p = liftM (foldl (flip wikilinks) p) getInterWikiLinks
     where getInterWikiLinks = do
             contents <- getStoredFileFS fs "interwiki.conf"
             return $
               case contents of
-                Just txt -> filter (/=("","")) $ map (breakOn " " . strip) txt
+                Just txt -> unzipWith External [breakOn " " t | t <- filter (not . T.null) $ map strip txt]
                 Nothing  -> []
 
 -- |Expand bare URLs into actual links. A bare URL is (in regular
@@ -104,12 +107,25 @@ interWiki fs p = liftM (foldl (\p' iwl -> wikilinks (Left iwl) (const True) p') 
 --
 -- This re-uses the inter-wiki linking machinery.
 bareURLs :: Pandoc -> Pandoc
-bareURLs p = foldl (\p' proto -> wikilinks (Left (proto, proto <> ":{}")) (isPrefixOf "//") p') p protocols
-    where protocols = ["http", "https", "ftp"]
+bareURLs p = foldl (flip $ flip wikilinks' $ isPrefixOf "//") p targets
+    where targets   = map (\proto -> External proto $ proto <> ":{}") protocols
+          protocols = ["http", "https", "ftp"]
+
+-- *Helpers
+
+-- |Distinguish between desired link types.
+data LinkType = Internal (MkUrl Sitemap)
+              | External Prefix Target
+
+type Prefix = Text
+type Target = Text
+
+-- |Like `wikiLinks'`, but takes no predicate.
+wikilinks :: LinkType -> Pandoc -> Pandoc
+wikilinks = flip wikilinks' $ const True
 
 -- |Expand wiki links (including those in empty links, like
--- `[Git]()`), with a possible prefix. If the prefix is not given, use
--- the supplied url making function to construct internal links.
+-- `[Git]()`).
 --
 -- For links not inside empty link tags, trailing punctuation is
 -- stripped and not considered to be part of the link definition. This
@@ -117,51 +133,55 @@ bareURLs p = foldl (\p' proto -> wikilinks (Left (proto, proto <> ":{}")) (isPre
 -- by a full stop, rather than a link to "FooBar."
 --
 -- Matches can be further refined by the supplied predicate function
--- which takes (for prefix links) the text after the prefix and (for
+-- which takes (for external links) the text after the prefix and (for
 -- internal links) the page name.
-wikilinks :: Either (Text, Text) (MkUrl Sitemap) -> (Text -> Bool) -> Pandoc -> Pandoc
-wikilinks urls pred = walk empties . everywhereBut (mkQ False isImgLink) (mkT ww)
+wikilinks' :: LinkType -> (Text -> Bool) -> Pandoc -> Pandoc
+wikilinks' t p = walk empties . everywhereBut (mkQ False isImgLink) (mkT ww)
+          -- Expand WikiWords in plain text
     where ww (Str s : xs) = case matchRegexAll trailingPunct s of
-                              Just (txt, punct, _, _) -> link True txt (Str txt) : Str punct : xs
-                              Nothing -> link True s (Str s) : xs
+                              Just (txt, punct, _, _) -> Str txt `fromMaybe` wikilink t p True txt : Str punct : xs
+                              Nothing                 -> Str s   `fromMaybe` wikilink t p True s               : xs
           ww a = a
 
-          empties r@(Link strs ("", title)) | all plainText strs = link False (catText strs) r
+          trailingPunct = mkRegex "[\\.,!?\"':;-]+$"
+          isImgLink     = hasConstr [Link empty empty, Image empty empty]
+
+          -- Expand empty link tags
+          empties r@(Link strs ("", _)) | all plainText strs = r `fromMaybe` wikilink t p False (catText strs)
           empties i = i
 
-          trailingPunct = mkRegex "[\\.,!?\"':;-]+$"
-
-          isCCased = isJust . matchRegex regex
-          regex    = mkRegex "([A-Z]+[a-z]+){2,}"
-
-          isImgLink = hasConstr [Link empty empty, Image empty empty]
           plainText = hasConstr [Str empty, Space]
+          catText   = foldMap $ \i -> case i of
+                                       Str s -> s
+                                       Space -> " "
 
-          catText = foldMap $ \i -> case i of
-                                     Str s -> s
-                                     Space -> " "
-
-          -- Turn text into links. If strict is True, require
-          -- non-prefix links to be CamelCased as well as valid page
-          -- names.
-          link strict = case urls of
-                          Left (pref, url) -> link' ":" (econds pref)   $ elink url
-                          Right mkurl      -> link' "/" (iconds strict) $ ilink mkurl
-
+-- |Try to turn text into a link. If strict, internal links must be
+-- CamelCased.
+wikilink :: LinkType -> (Text -> Bool) -> Bool -> String -> Maybe Inline
+wikilink target pred strict = case target of
+                                Internal mkurl    -> link' "/" iconds        $ ilink mkurl
+                                External pref url -> link' ":" (econds pref) $ elink url
           -- Handle a prefix/link text pair
-          link' chr conds tourl txt fallback = let (pref, suff) = T.drop 1 <$> breakOn chr (pack txt)
-                                               in if and $ conds pref suff
-                                                  then Link [Str txt] (tourl pref suff, txt)
-                                                  else fallback
+    where link' chr conds tourl txt = let (pref, suff) = T.drop 1 <$> breakOn chr (pack txt)
+                                      in if and $ conds pref suff
+                                         then Just $ Link [Str txt] (tourl pref suff, txt)
+                                         else Nothing
 
           -- Internal and external link conditions
-          iconds strict p r = [isPageName p, not strict || isCCased (unpack p), r == "" || isRevisionId r, pred p]
-          econds pref p l   = [p == pref, T.length l > 0, pred l]
+          iconds      p r = [isPageName p, not strict || isCCased (unpack p), r == "" || isRevisionId r, pred p]
+          econds pref p l = [p == pref, T.length l > 0, pred l]
+
+          isCCased = isJust . matchRegex camCase
+          camCase  = mkRegex "([A-Z]+[a-z]+){2,}"
 
           -- Internal and external link constructors
           ilink mkurl s r = unpack $ mkurl (View (fromJust $ toWikiPage s) $ toRevision r) []
           elink url _ s   = unpack $ replace "{}" s url
 
--- |Determine if a value has a constructor in a given set
+-- |Determine if a value has a constructor in a given set.
 hasConstr :: Data a => [a] -> a -> Bool
 hasConstr ds i = toConstr i `elem` map toConstr ds
+
+-- |Unzip a list of pairs with a given function.
+unzipWith :: (a -> b -> c) -> [(a, b)] -> [c]
+unzipWith = map . uncurry
