@@ -143,15 +143,15 @@ wikilinks' :: LinkType -> (Text -> Bool) -> Pandoc -> Pandoc
 wikilinks' t p = walk empties . everywhereBut (mkQ False isImgLink) (mkT ww)
           -- Expand WikiWords in plain text
     where ww (Str s : xs) = case matchRegexAll trailingPunct s of
-                              Just (txt, punct, _, _) -> Str txt `fromMaybe` wikilink t p True txt : Str punct : xs
-                              Nothing                 -> Str s   `fromMaybe` wikilink t p True s               : xs
+                              Just (txt, punct, _, _) -> wikilink t p True txt ?: Str txt : Str punct : xs
+                              Nothing                 -> wikilink t p True s   ?: Str s               : xs
           ww a = a
 
           trailingPunct = mkRegex "[\\.,!?\"':;-]+$"
           isImgLink     = hasConstr [Link empty empty, Image empty empty]
 
           -- Expand empty link tags
-          empties r@(Link strs ("", _)) | all plainText strs = r `fromMaybe` wikilink t p False (catText strs)
+          empties r@(Link strs ("", _)) | all plainText strs = wikilink t p False (catText strs) ?: r
           empties i = i
 
           plainText = hasConstr [Str empty, Space]
@@ -189,3 +189,7 @@ hasConstr ds i = toConstr i `elem` map toConstr ds
 -- |Unzip a list of pairs with a given function.
 unzipWith :: (a -> b -> c) -> [(a, b)] -> [c]
 unzipWith = map . uncurry
+
+-- |Infix flipped `fromMaybe`.
+(?:) :: Maybe a -> a -> a
+(?:) = flip fromMaybe
