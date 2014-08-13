@@ -79,15 +79,16 @@ wikiWords mkurl = wikilinks $ Internal mkurl
 -- |Apply a "broken" class to all internal broken links.
 broken :: (Functor m, MonadIO m) => FileStore -> MkUrl Sitemap -> Pandoc -> m Pandoc
 broken fs mkurl = walkM bork
-    where bork l@(Link _ (target, _)) = let tlast = getLast target
-                                            wlink = unpack $ mkurl (View (fromJust $ toWikiPage tlast) Nothing) []
-                                        in if isPageName tlast && wlink == target
-                                           then do
-                                             exists <- doesFileExistFS fs $ wikipage . fromJust $ toWikiPage tlast
-                                             return $ if exists
-                                                      then l
-                                                      else Span ("", ["broken"], []) [l]
-                                           else return l
+    where bork l@(Link _ (target, _)) = case toWikiPage $ getLast target of
+                                          Just wpage -> do
+                                            exists <- doesFileExistFS fs $ wikipage wpage
+                                            let wlink = mkurl (View wpage Nothing) []
+                                            return $
+                                              if unpack wlink == target && not exists
+                                              then Span ("", ["broken"], []) [l]
+                                              else l
+
+                                          Nothing -> return l
           bork i = return i
 
           getLast = last . split (=='/') . pack
