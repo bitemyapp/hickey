@@ -10,6 +10,7 @@ import Control.Applicative ((<$>))
 import Control.Arrow (first)
 import Control.Monad ((>=>), liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.Data (Data)
 import Data.FileStore (FileStore)
 import Data.Foldable (foldMap)
 import Data.Generics (everywhereBut, mkQ, mkT, toConstr, empty)
@@ -133,9 +134,8 @@ wikilinks urls pred = walk empties . everywhereBut (mkQ False isImgLink) (mkT ww
           isCCased = isJust . matchRegex regex
           regex    = mkRegex "([A-Z]+[a-z]+){2,}"
 
-          isImgLink      = hasConstr [Link empty empty, Image empty empty] :: Inline -> Bool
-          plainText      = hasConstr [Str empty, Space]
-          hasConstr ds i = toConstr i `elem` map toConstr ds
+          isImgLink = hasConstr [Link empty empty, Image empty empty]
+          plainText = hasConstr [Str empty, Space]
 
           catText = foldMap $ \i -> case i of
                                      Str s -> s
@@ -161,3 +161,7 @@ wikilinks urls pred = walk empties . everywhereBut (mkQ False isImgLink) (mkT ww
           -- Internal and external link constructors
           ilink mkurl s r = unpack $ mkurl (View (fromJust $ toWikiPage s) $ toRevision r) []
           elink url _ s   = unpack $ replace "{}" s url
+
+-- |Determine if a value has a constructor in a given set
+hasConstr :: Data a => [a] -> a -> Bool
+hasConstr ds i = toConstr i `elem` map toConstr ds
