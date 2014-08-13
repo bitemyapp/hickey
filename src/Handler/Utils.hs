@@ -13,14 +13,12 @@ import Routes
 import Store (getStoredFile, listFiles)
 import Store.Paths (wikipage)
 import Templates (renderNoticePage)
-import Text.Pandoc.Definition (Pandoc(..), Meta, MetaValue(..), Inline(..), lookupMeta)
+import Text.Pandoc.Definition (Pandoc(..), MetaValue(..), Inline(..), lookupMeta)
 import Text.Pandoc.Options ()
 import Text.Pandoc.Readers.Markdown (readMarkdown)
 import Types
 import Web.Seacat (Handler, RequestProcessor)
 import Web.Seacat.RequestHandler (htmlUrlResponse)
-
-import Control.Monad.IO.Class
 
 -- * Page protection
 

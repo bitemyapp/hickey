@@ -12,7 +12,7 @@ import Control.Applicative ((<$>))
 import Control.Monad (liftM)
 import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
-import Data.Text (isPrefixOf, isSuffixOf, pack, append)
+import Data.Text (isPrefixOf, append)
 import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Handler.Utils
